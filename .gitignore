@@ -2,3 +2,4 @@ env/
 .idea/
 cv.*
 *.pyc
+data/CK+/

@@ -1,8 +1,10 @@
 
 import argparse
+import sys
 import gui.video as vid
+import gui.image as img
 from face_detect.FDConvNet import FDConvNet
-from face_detect.FDOpenCV import FDOpenCV
+from face_detect.FDHaarCascade import FDHaarCascade
 from face_express.FESVM import FESVM
 from face_express.FEDeepNet import FEDeepNet
 from face_express.FEConvNet import FEConvNet
@@ -11,49 +13,116 @@ def main():
 
     #Parse args
     parser = argparse.ArgumentParser(description='Emote: A face detection and facial expression recognition pipeline')
-    parser.add_argument('source', type=str, help='Source of video to be processed', choices=['live', 'file'])
-    parser.add_argument('-d', '--detect-method', type=str, help='Face detection algorithm', choices=['opencv', 'cnn'])
-    parser.add_argument('-e', '--express-method', type=str, help='Facial expression processing algorithm', choices=['svm', 'dbn', 'cnn'])
-    parser.add_argument('-f', '--filename', type=str, help='Video file to be processed')
+    parser.add_argument('command', type=str, help='Subcommand to be run')
 
-    arg = parser.parse_args()
+    args = parser.parse_args(sys.argv[1:2])
 
-    #Holder variables to be filled by args
-    detect_method = None
+    if args.command is None:
+        print_help()
+    elif args.command == 'live':
+        live(sys.argv[2:])
+    elif args.command == 'image':
+        image(sys.argv[2:])
+    elif args.command == 'video':
+        video(sys.argv[2:])
+    else:
+        print_help()
+
+
+def live(argv):
+
+    #setup args
+    parser = argparse.ArgumentParser(description="Live subcommand: Process video from a live camera feed")
+    parser.add_argument('-d', '--detector', type=str, help='Face detection algorithm', choices=['haar', 'cnn'])
+    parser.add_argument('-e', '--expresser', type=str, help='Facial expression processing algorithm', choices=['svm', 'dbn', 'cnn'])
+    parser.add_argument('-o', '--out-file', type=str, help='Path to processed media')
+
+    args = parser.parse_args(argv)
+
+    detector = get_detector(args.detector)
+    expresser = get_expresser(args.expresser)
+
+    vid.process_from_capture(detector, expresser, out_file=args.out_file)
+
+def image(argv):
+    parser = argparse.ArgumentParser(description="Image subcommand: process an image file")
+    parser.add_argument('path',  help="The image file to be processed", type=str)
+    parser.add_argument('-d', '--detector', type=str, help='Face detection algorithm', choices=['haar', 'cnn'])
+    parser.add_argument('-e', '--expresser', type=str, help='Facial expression processing algorithm', choices=['svm', 'dbn', 'cnn'])
+    parser.add_argument('-o', '--out-file', type=str, help='Path to processed media')
+
+    args = parser.parse_args(argv)
+
+    detector = get_detector(args.detector)
+    expresser = get_expresser(args.expresser)
+
+    img.process_image(detector, expresser, args.path, args.out_file)
+
+def video(argv):
+
+    parser = argparse.ArgumentParser(description="Video subcommand: Process video from a source file")
+    parser.add_argument('path', required=True, help="The image file to be processed", type=str)
+    parser.add_argument('-d', '--detector', type=str, help='Face detection algorithm', choices=['haar', 'cnn'])
+    parser.add_argument('-e', '--expresser', type=str, help='Facial expression processing algorithm', choices=['svm', 'dbn', 'cnn'])
+    parser.add_argument('-o', '--out-file', type=str, help='Path to processed media')
+    parser.add_argument('-r', '--frame-rate', type=int, help='Frame rate of the provided video, default is 30fps')
+
+    args = parser.parse_args(argv)
+
+    detector = get_detector(args.detector)
+    expresser = get_expresser(args.expresser)
+
+    vid.process_from_file(detector, expresser, args.path, args.frame_rate, args.out_file)
+
+def print_help():
+    print("emote [--help] <command>")
+    print("")
+    print("Subcommands:")
+    print("live         Image source is the computer's primary camera")
+    print("image        Image source is a provided image file")
+    print("video        Source is a provided video file")
+    print("")
+    print("Face Detectors:")
+    print("Select a detector using the -d or --detector option")
+    print("")
+    print("haar         Haar-like features and Cascading Classifiers")
+    print("cnn          Uses a convolution neural net to detect faces")
+    print("")
+    print("Expression Recognition Models:")
+    print("Select a recognition model using the -e or --expresser option")
+    print("")
+    print("svm          Uses an SVM approach to classify expressions")
+    print("cnn          A convolution neural net approach")
+    print("dbn          Utilizes deep belief neural networks")
+    print("")
+    print("Use the --help option on any subcommand for option")
+    print("information relating to that command")
+
+def get_expresser(option):
     express_method = None
-
-
-    #Get detection method, default is opencv
-    if arg.detect_method == None or arg.dete_method == 'opencv':
-        detect_method = FDOpenCV()
-    elif arg.detect_method == 'cnn':
-        detect_method = FDConvNet()
-
-    #Get expression method, default is svm
-    if arg.express_method == None or arg.express_method == 'svm':
+    if option == 'svm' or option is None:
         express_method = FESVM()
-    elif arg.express_method == 'dbn':
+    elif option == 'dbn':
         express_method = FEDeepNet()
-    elif arg.express_method == 'cnn':
+    elif option  == 'cnn':
         express_method = FEConvNet()
-
-    if express_method == None or detect_method == None:
-        #Shouldn't get here
-        print("Unable to properly select processing options")
+    else:
+        print_help()
         quit()
 
-    #Get source from args, default is live
-    if arg.source == None or arg.source == 'live':
-        vid.process_from_capture(detect_method, express_method)
-    elif arg.source == 'file':
-        if arg.filename == None:
-            print("Must provide a filename with the -f option")
-            parser.print_help()
-            quit()
+    return express_method
 
-        vid.process_from_file(detect_method, express_method, arg.filename)
+def get_detector(option):
+    detect_method = None
+    if option == 'haar' or option is None:
+        detect_method = FDHaarCascade()
+    elif option == 'cnn':
+        detect_method = FDConvNet()
+    else:
+        print_help()
+        quit()
 
-
+    return detect_method
 
 if __name__ == "__main__":
     main()

@@ -1,7 +1,8 @@
 from FDDetector import FDDetector
 import cv2
+import numpy as np
 
-class FDOpenCV(FDDetector):
+class FDHaarCascade(FDDetector):
 
     def find(self, frame):
 
@@ -13,10 +14,7 @@ class FDOpenCV(FDDetector):
 
         if len(faces) > 0:
             x,y,w,h = faces[0]
-
+            roi_color = np.copy(frame[y:y+h, x:x+w])
             cv2.rectangle(frame,(x,y),(x+w,y+h),(255,0,0),2)
-            roi_color = frame[y:y+h, x:x+w]
-
-
 
         return frame, roi_color

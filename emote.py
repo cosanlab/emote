@@ -1,6 +1,6 @@
 
 import argparse
-import sys
+import sys, os
 import gui.video as vid
 import gui.image as img
 from face_detect.FDConvNet import FDConvNet
@@ -11,7 +11,7 @@ from face_express.FEConvNet import FEConvNet
 
 def main():
 
-    #Parse args
+    #Parse command args
     parser = argparse.ArgumentParser(description='Emote: A face detection and facial expression recognition pipeline')
     parser.add_argument('command', type=str, help='Subcommand to be run')
 

@@ -3,3 +3,4 @@ env/
 cv.*
 *.pyc
 data/CK+/
+data/ck_cleaned/

@@ -1,4 +1,5 @@
 from FDDetector import FDDetector
+from util.paths import get_real_path
 import cv2
 import numpy as np
 import os
@@ -6,7 +7,7 @@ import os
 class FDHaarCascade(FDDetector):
 
     def find(self, frame):
-        data_loc = os.path.dirname(os.path.realpath(__file__)) + "/../" + 'data/haarcascades/haarcascade_frontalface_default.xml'
+        data_loc = get_real_path(__file__) + "/../data/haarcascades/haarcascade_frontalface_default.xml'
 
         face_cascade = cv2.CascadeClassifier(data_loc)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)

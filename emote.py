@@ -61,16 +61,25 @@ def image(argv):
 def video(argv):
 
     parser = argparse.ArgumentParser(description="Video subcommand: Process video from a source file")
-    parser.add_argument('path', required=True, help="The image file to be processed", type=str)
+    parser.add_argument('path',  help="The image file to be processed", type=str)
     parser.add_argument('-d', '--detector', type=str, help='Face detection algorithm', choices=['haar', 'cnn'])
     parser.add_argument('-e', '--expresser', type=str, help='Facial expression processing algorithm', choices=['svm', 'dbn', 'cnn'])
-    parser.add_argument('-o', '--out-file', type=str, help='Path to processed media')
+
+    #Setup output options
+    output_group = parser.add_mutually_exclusive_group(required=False)
+    output_group.add_argument('-o', '--out-file', type=str, help='Path to processed video file')
+    output_group.add_argument('-O', '--out-directory', type=str, help='Path to directory where processed frames will be placed')
+
+    #Set the framerate of the video
     parser.add_argument('-r', '--frame-rate', type=int, help='Frame rate of the provided video, default is 30fps')
 
     args = parser.parse_args(argv)
 
     detector = get_detector(args.detector)
     expresser = get_expresser(args.expresser)
+
+    if args.out_directory:
+        vid.process_video_into_frames(detector, expresser, args.path,args.out_directory, args.frame_rate)
 
     vid.process_from_file(detector, expresser, args.path, args.frame_rate, args.out_file)
 

@@ -62,7 +62,7 @@ for subject_dir in *; do
 		image_file=`pwd`
 		image_file=$image_file/$image_dir
 		image_file=$image_file/`ls -t $image_dir | tail -1`
-		echo -e "\rpython $PROJECT_HOME/emote.py image -o $OUT_DIR/$id.jpg $image_file\033[K"
+		echo -e "python $PROJECT_HOME/emote.py image -o $OUT_DIR/$id.jpg $image_file"
 
 		python $PROJECT_HOME/emote.py image -o $OUT_DIR/$id.png $image_file
 	done

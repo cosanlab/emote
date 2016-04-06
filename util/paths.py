@@ -19,8 +19,11 @@ class DataLoc(object):
         parsed = json.load(f)
         paths = parsed['data']
 
-        for key, val in paths:
-            self.path_map[key] = os.path.normpath(get_real_path(__file__) + "/../" + val)
+        for key, val in paths.items() :
+            if(os.path.isabs(val)):
+                self.path_map[key] = val
+            else:
+                self.path_map[key] = os.path.normpath(get_real_path(__file__) + "/../" + val)
 
     def get_path(self, data):
         if self.path_map.has_key(data):

@@ -107,7 +107,7 @@ class FrameWriter:
 
     def write(self, image):
 
-        out_file = self.out_dir + '/' + self.filename + '_' + str(self.frame_count) + '.png'
+        out_file = os.path.normpath(self.out_dir + '/' + self.filename + '_' + str(self.frame_count) + '.png')
         print("Writing to " + out_file)
         cv2.imwrite(out_file, image)
         self.frame_count += 1

@@ -12,7 +12,7 @@ from face_express.FEConvNet import FEConvNet
 
 def main():
 
-    if not os.path.exists(get_real_path(__file__) + "config.json"):
+    if not os.path.exists(get_real_path(__file__) + "/config.json"):
         print("Error: config.json missing from source directory")
         quit(1)
 

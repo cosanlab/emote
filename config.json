@@ -1,8 +1,8 @@
 {
   "data":{
-    "ck":"data/ck_cleaned/",
-    "difsa":"data/DIFSA/",
-    "amfed":"data/amfed_cleaned/",
-    "haar":"data/haarcascades/"
+    "ck":"/idata/lchang/Data/FACS_data/ck_cleaned/",
+    "difsa":"/idata/lchang/Data/FACS_data/DIFSA_cleaned/",
+    "amfed":"/idata/lchang/Data/FACS_data/amfed_cleaned/",
+    "haar":"/idata/lchang/Data/FACS_data/haarcascades/"
   }
 }

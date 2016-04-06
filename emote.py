@@ -3,6 +3,7 @@ import argparse
 import sys, os
 import gui.video as vid
 import gui.image as img
+from util.paths import get_real_path
 from face_detect.FDConvNet import FDConvNet
 from face_detect.FDHaarCascade import FDHaarCascade
 from face_express.FESVM import FESVM
@@ -10,6 +11,10 @@ from face_express.FEDeepNet import FEDeepNet
 from face_express.FEConvNet import FEConvNet
 
 def main():
+
+    if not os.path.exists(get_real_path(__file__) + "config.json"):
+        print("Error: config.json missing from source directory")
+        quit(1)
 
     #Parse command args
     parser = argparse.ArgumentParser(description='Emote: A face detection and facial expression recognition pipeline')
@@ -27,6 +32,7 @@ def main():
         video(sys.argv[2:])
     else:
         print_help()
+        quit(1)
 
 
 def live(argv):

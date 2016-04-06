@@ -1,11 +1,10 @@
 #Interface to access CK+ data set within python
 import cv2
-
+import os
 from data.FAC import FACDatum, FACLabel
 from data.repositories.FACRepository import FACRepository
-from util.paths import get_real_path
+from util.paths import DataLoc
 
-DATA_DIR = 'ck_cleaned'
 FAC_DATA = 'fac_data'
 BUFFER_SIZE = 50
 IMAGE_EXT = '.jpg'
@@ -13,8 +12,10 @@ IMAGE_EXT = '.jpg'
 class CKRepository(FACRepository):
 
     def __init__(self):
-        self.data_dir = get_real_path(__file__) + '/../' + DATA_DIR
-        self.fac_data = self.data_dir + '/' + FAC_DATA
+        path_finder = DataLoc()
+
+        self.data_dir = path_finder.get_path('ck')
+        self.fac_data = os.path.normpath(self.data_dir + '/' + FAC_DATA)
         self.current = 1
 
         FACRepository.__init__(self, BUFFER_SIZE)

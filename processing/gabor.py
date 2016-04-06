@@ -7,6 +7,7 @@ class GaborFilter:
     def __init__(self):
         self.filters = []
 
+
     def add_filter(self, ksize, sigma, theta, lambd, gamma, psi, ktype):
 
          kern = cv2.getGaborKernel((ksize, ksize), sigma, theta,lambd, gamma, psi, ktype)

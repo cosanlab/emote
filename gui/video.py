@@ -85,6 +85,8 @@ def _process_from_video_obj(capture, detector, expresser, writer=None, show_wind
                 cv2.imshow('frame', new_frame)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
+        else:
+            break
 
     # When everything done, release the capture
     capture.release()

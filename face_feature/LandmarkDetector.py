@@ -1,6 +1,6 @@
 import os
 import dlib
-from skimage import io
+import cv2
 from util.paths import DataLoc
 
 class LandmarkDetector:
@@ -18,7 +18,7 @@ class LandmarkDetector:
 
 def main():
     detector = LandmarkDetector()
-    img = io.imread("../data/test_data/single_processed.jpg")
+    img = cv2.imread("../data/test_data/single_processed.jpg")
     dets = detector.get_landmarks(img)
     print(dets)
 

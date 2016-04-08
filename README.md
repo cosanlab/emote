@@ -7,8 +7,10 @@ Emote is a toolkit for image processing, facial detection, and facial action cod
 ##Setup
 ###Dependencies
 Emote has only a few dependencies which are genearlly easy to install:
-- OpenCV 3.0+
+- OpenCV 3.0+ (w/ python)
+- DLib (w/ python)
 - numpy 1.7+
+- scikit
 - matplotlib
 - tensorflow
 

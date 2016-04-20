@@ -18,11 +18,17 @@ class FACRepository:
     def get_items(self, x):
         list = []
 
-        for i in range(x):
-            list.append(self.data_buffer.pop(0))
+        if len(self.data_buffer) != 0:
+            for i in range(x):
+                list.append(self.data_buffer.pop(0))
 
-            if len(self.data_buffer) == 0:
-                self.load_data_into_buffer(self.buffer_size)
+                if len(self.data_buffer) == 0:
+                    self.load_data_into_buffer(self.buffer_size)
+
+                #Check again and if still empty, then there's nothing left
+                #to load
+                if len(self.data_buffer) == 0:
+                    break
 
         return list
 

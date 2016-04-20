@@ -61,9 +61,9 @@ def main():
     ck = CKRepository()
 
     items = ck.get_items(20)
-    items += ck.get_items(50)
-    items.append(ck.next_item())
-    items.append(ck.next_item())
+
+    while len(items) > 0:
+        items = ck.get_items(50)
 
     uni = set(items)
 

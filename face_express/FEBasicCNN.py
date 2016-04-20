@@ -32,14 +32,13 @@ class FEBasicCNN(FEExpresser):
         logging.info("Creating network variables")
         self.trainer, self.output, self.ops = self._create_network()
 
-        saver = tf.train.Saver()
+        self.saver = tf.train.Saver()
         self.session = tf.Session()
         self.session.run(self.ops)
 
-        model_path = get_project_home() + '/data/saved_models/' + MODEL_NAME
-        if os.path.isfile(model_path):
+        if os.path.isfile(self.get_model_path()):
             logging.info("Found saved model, restoring variables....")
-            saver.restore(self.session, model_path)
+            self.saver.restore(self.session, self.get_model_path())
             self.isTrained = True
 
     def predict(self, face):
@@ -76,7 +75,7 @@ class FEBasicCNN(FEExpresser):
                 labels.append(new_label)
 
 
-            if i % 50 == 0:
+            if i % 2 == 0:
                 train_accuracy = accuracy.eval(session=self.session, feed_dict={self.x:images, self.y_:labels , self.keep_prob: 1.0})
                 logging.info("Training: step %d, training accuracy %g"%(i, train_accuracy))
 
@@ -86,6 +85,7 @@ class FEBasicCNN(FEExpresser):
 
         self.isTrained = True
         logging.info("Training complete")
+        self.saver.save(self.session, self.get_model_path())
 
     def _create_network(self):
 
@@ -125,6 +125,10 @@ class FEBasicCNN(FEExpresser):
         init_ops = tf.initialize_all_variables()
 
         return train_step, layer7_soft, init_ops
+
+    def get_model_path(self):
+        return get_project_home() + '/data/saved_models/' + MODEL_NAME
+
 
 
 

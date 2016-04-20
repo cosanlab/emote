@@ -35,3 +35,9 @@ class FACRepository:
 
     def _load_data(self, n):
         raise NotImplementedError
+
+    def get_height(self):
+        raise NotImplementedError
+
+    def get_width(self):
+        raise NotImplementedError

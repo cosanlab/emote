@@ -1,0 +1,17 @@
+{
+  "data":{
+    "ck":"data/ck_cleaned/",
+    "difsa":"data/DIFSA/",
+    "amfed":"data/amfed_cleaned/",
+    "detector":"data/haarcascades/",
+    "landmarks":"data/facial_landmarks/"
+  },
+  "train": {
+    "facs": { //FAC are always integers
+      "codes": [1,2,4,5,6,7,9,10,11,12,14,15,16,17,20,23,24,25,26,27], //List of codes to look for
+      "intensities": false //boolean value
+    },
+    "data": "ck", //Dataset to train with
+    "model": "nottingham" //Model to use, for model types, see docs
+  }
+}

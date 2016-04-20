@@ -1,9 +1,12 @@
 import os
 import json
-
+import constants as ks
 
 def get_real_path(file):
     return os.path.dirname(os.path.realpath(file))
+
+def get_project_home():
+    return os.path.normpath(get_real_path(__file__) + '/../')
 
 class DataLoc(object):
     _instance = None
@@ -17,7 +20,7 @@ class DataLoc(object):
         self.path_map = {}
         f = open(get_real_path(__file__) + '/../config.json')
         parsed = json.load(f)
-        paths = parsed['data']
+        paths = parsed[ks.kDataKey]
 
         for key, val in paths.items() :
             if(os.path.isabs(val)):

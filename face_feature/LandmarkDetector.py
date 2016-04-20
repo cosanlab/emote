@@ -18,9 +18,14 @@ class LandmarkDetector:
 
 def main():
     detector = LandmarkDetector()
-    img = cv2.imread("../data/test_data/single_processed.jpg")
-    dets = detector.get_landmarks(img)
-    print(dets)
+    img = cv2.imread("../data/test_data/multi_processed.jpg")
+    shape = detector.get_landmarks(img)
+    win = dlib.image_window()
+    win.set_image(img)
+    win.add_overlay(shape)
+
+    print("Part 0: {}, Part 1: {} ...".format(shape.part(0),
+                                                  shape.part(1)))
 
 if "__main__" == __name__:
     main()

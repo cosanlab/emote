@@ -1,4 +1,5 @@
 env/
+logs/*
 .idea/
 cv.*
 *.pyc

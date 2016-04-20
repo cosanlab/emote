@@ -1,7 +1,7 @@
 
 class FEExpresser:
 
-    def train(self, features, labels):
+    def train(self):
         raise NotImplementedError
 
     def predict(self, face):

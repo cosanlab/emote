@@ -8,10 +8,10 @@ class FACDatum:
         self.label_map = {fac.fac: fac.intensity for fac in label_array}
         self.id = id
 
-    def image(self):
+    def get_image(self):
         return self.image
 
-    def labels(self):
+    def get_labels(self):
         return self.label_map.keys()
 
     def intensity_for_lable(self, label):

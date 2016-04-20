@@ -4,17 +4,21 @@ import sys, os
 import gui.video as vid
 import gui.image as img
 from util.paths import get_real_path
+from util.logger import setupLogging
+from train.train import setupModel
 from face_detect.FDConvNet import FDConvNet
 from face_detect.FDHaarCascade import FDHaarCascade
 from face_express.FESVM import FESVM
 from face_express.FEDeepNet import FEDeepNet
-from face_express.FEConvNet import FEConvNet
+from face_express.FENottinghamCNN import FENottinghamCNN
 
 def main():
 
     if not os.path.exists(get_real_path(__file__) + "/config.json"):
         print("Error: config.json missing from source directory")
         quit(1)
+
+    setupLogging() #Configures logging system
 
     #Parse command args
     parser = argparse.ArgumentParser(description='Emote: A face detection and facial expression recognition pipeline')
@@ -30,6 +34,12 @@ def main():
         image(sys.argv[2:])
     elif args.command == 'video':
         video(sys.argv[2:])
+    elif args.command == 'train':
+        config = open("./config.json")
+        model = setupModel(config)
+
+        if not model.isTrained:
+            model.train()
     else:
         print_help()
         quit(1)
@@ -40,7 +50,7 @@ def live(argv):
     #setup args
     parser = argparse.ArgumentParser(description="Live subcommand: Process video from a live camera feed")
     parser.add_argument('-d', '--detector', type=str, help='Face detection algorithm', choices=['haar', 'cnn'])
-    parser.add_argument('-e', '--expresser', type=str, help='Facial expression processing algorithm', choices=['svm', 'dbn', 'cnn'])
+    parser.add_argument('-e', '--expresser', type=str, help='Facial expression train algorithm', choices=['svm', 'dbn', 'cnn'])
     parser.add_argument('-o', '--out-file', type=str, help='Path to processed media')
 
     args = parser.parse_args(argv)
@@ -54,7 +64,7 @@ def image(argv):
     parser = argparse.ArgumentParser(description="Image subcommand: process an image file")
     parser.add_argument('path',  help="The image file to be processed", type=str)
     parser.add_argument('-d', '--detector', type=str, help='Face detection algorithm', choices=['haar', 'cnn'])
-    parser.add_argument('-e', '--expresser', type=str, help='Facial expression processing algorithm', choices=['svm', 'dbn', 'cnn'])
+    parser.add_argument('-e', '--expresser', type=str, help='Facial expression train algorithm', choices=['svm', 'dbn', 'cnn'])
     parser.add_argument('-o', '--out-file', type=str, help='Path to processed media')
 
     args = parser.parse_args(argv)
@@ -69,7 +79,7 @@ def video(argv):
     parser = argparse.ArgumentParser(description="Video subcommand: Process video from a source file")
     parser.add_argument('path',  help="The image file to be processed", type=str)
     parser.add_argument('-d', '--detector', type=str, help='Face detection algorithm', choices=['haar', 'cnn'])
-    parser.add_argument('-e', '--expresser', type=str, help='Facial expression processing algorithm', choices=['svm', 'dbn', 'cnn'])
+    parser.add_argument('-e', '--expresser', type=str, help='Facial expression train algorithm', choices=['svm', 'dbn', 'cnn'])
 
     #Setup output options
     output_group = parser.add_mutually_exclusive_group(required=False)

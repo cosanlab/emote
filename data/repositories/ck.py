@@ -22,12 +22,15 @@ class CKRepository(FACRepository):
 
 
     def _load_data(self, n):
+
         fp = open(self.fac_data)
         data = []
+        isInRange = False
 
         for i, line in enumerate(fp):
-            if i >= self.current and i < self.current + n:
+            if self.current <= i < self.current + n:
                 data.append(self._line_to_datum(line))
+                isInRange = True
 
         self.current += n
         fp.close()
@@ -47,14 +50,20 @@ class CKRepository(FACRepository):
 
         return datum
 
+    def get_height(self):
+        return self.data_buffer[0].image.shape[0]
+
+    def get_width(self):
+        return self.data_buffer[0].image.shape[1]
+
 
 def main():
     ck = CKRepository()
 
     items = ck.get_items(20)
-    items += ck.get_items(50)
-    items.append(ck.next_item())
-    items.append(ck.next_item())
+
+    while len(items) > 0:
+        items = ck.get_items(50)
 
     uni = set(items)
 

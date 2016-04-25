@@ -1,27 +1,39 @@
 FRAME_WIDTH = 96
 FRAME_HEIGHT = 96
+#--------JSON Keys--------------
 
-#----------Model Types----------
+
+#----------Detector Model Names-----------
+kHaar = 'haar'
+
+#----------Expression Model Names----------
 kNottinghamCNN = 'nottingham'
 kBasicCNN = 'basic_cnn'
 
 
-#--------JSON Keys--------------
-#Data keys
+#Data Name keys
 kDataKey = 'data'
 kDataCK = 'ck'
 kDataDIFSA = 'difsa'
 kDataAMFED = 'amfed'
 kDataLandmarks = 'landmarks'
-kDataDetector = 'detector'
+kDataHaar = 'haar'
+kDataLocation = 'location'
+kDataImageSize = 'image_size'
 
-#Training keys
-kTrainKey = 'train'
+#Modeling keys
+kModelKey = 'model'
 #FACS
-kTrainFACsKey = 'facs'
-kTrainFACsCodesKey = 'codes'
-kTrainFACsIntensityKey = 'intensity'
+kModelFACsKey = 'facs'
+kModelFACsCodesKey = 'codes'
+kModelFACsIntensityKey = 'intensity'
 #data
-kTrainDataKey = 'data'
+kModelDataKey = 'data'
 #model
-kTrainModelKey = 'model'
+kModelNameKey = 'name'
+
+
+#--------Detector-------
+kDetectorKey = 'detector'
+
+

@@ -11,12 +11,12 @@ class FDHaarCascade(FDDetector):
     def __init__(self):
 
         path_finder = DataLoc()
-        data_path =  path_finder.get_path(ks.kDataDetector) + '/haarcascade_frontalface_default.xml'
+        data_path =  path_finder.get_path(ks.kDataHaar) + '/haarcascade_frontalface_default.xml'
         self.face_cascade = cv2.CascadeClassifier(data_path)
 
         FDDetector.__init__(self)
 
-    def find(self, frame):
+    def find(self, frame, grayscale=False):
 
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         faces = self.face_cascade.detectMultiScale(gray, 1.3, 5)
@@ -45,5 +45,8 @@ class FDHaarCascade(FDDetector):
 
             roi_color = np.copy(frame[y:y+h, x:x+w])
             cv2.rectangle(frame,(x,y),(x+w,y+h),(255,0,0),2)
+
+            if grayscale:
+                roi_color = cv2.cvtColor(roi_color, cv2.COLOR_BGR2GRAY)
 
         return frame, roi_color

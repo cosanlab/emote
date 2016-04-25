@@ -5,17 +5,19 @@ import gui.video as vid
 import gui.image as img
 from util.paths import get_real_path
 from util.logger import setupLogging
-from train.train import setupModel
+from util import config
+from util import constants as ks
+from face_express import models
 from face_detect.FDConvNet import FDConvNet
 from face_detect.FDHaarCascade import FDHaarCascade
-from face_express.FESVM import FESVM
-from face_express.FEDeepNet import FEDeepNet
+from face_express.FEBasicCNN import FEBasicCNN
 from face_express.FENottinghamCNN import FENottinghamCNN
 
 def main():
 
-    if not os.path.exists(get_real_path(__file__) + "/config.json"):
-        print("Error: config.json missing from source directory")
+
+    config_file = config.get_config_pointer()
+    if config_file is None:
         quit(1)
 
     setupLogging() #Configures logging system
@@ -35,9 +37,7 @@ def main():
     elif args.command == 'video':
         video(sys.argv[2:])
     elif args.command == 'train':
-        config = open("./config.json")
-        model = setupModel(config)
-
+        model = models.modelForTraining()
         if not model.isTrained:
             model.train()
     else:
@@ -63,14 +63,12 @@ def live(argv):
 def image(argv):
     parser = argparse.ArgumentParser(description="Image subcommand: process an image file")
     parser.add_argument('path',  help="The image file to be processed", type=str)
-    parser.add_argument('-d', '--detector', type=str, help='Face detection algorithm', choices=['haar', 'cnn'])
-    parser.add_argument('-e', '--expresser', type=str, help='Facial expression train algorithm', choices=['svm', 'dbn', 'cnn'])
     parser.add_argument('-o', '--out-file', type=str, help='Path to processed media')
 
     args = parser.parse_args(argv)
 
-    detector = get_detector(args.detector)
-    expresser = get_expresser(args.expresser)
+    detector = get_detector()
+    expresser = get_expresser()
 
     img.process_image(detector, expresser, args.path, args.out_file)
 
@@ -78,8 +76,6 @@ def video(argv):
 
     parser = argparse.ArgumentParser(description="Video subcommand: Process video from a source file")
     parser.add_argument('path',  help="The image file to be processed", type=str)
-    parser.add_argument('-d', '--detector', type=str, help='Face detection algorithm', choices=['haar', 'cnn'])
-    parser.add_argument('-e', '--expresser', type=str, help='Facial expression train algorithm', choices=['svm', 'dbn', 'cnn'])
 
     #Setup output options
     output_group = parser.add_mutually_exclusive_group(required=False)
@@ -91,8 +87,8 @@ def video(argv):
 
     args = parser.parse_args(argv)
 
-    detector = get_detector(args.detector)
-    expresser = get_expresser(args.expresser)
+    detector = get_detector()
+    expresser = get_expresser()
 
     if args.out_directory:
         vid.process_video_into_frames(detector, expresser, args.path,args.out_directory, args.frame_rate)
@@ -123,26 +119,37 @@ def print_help():
     print("Use the --help option on any subcommand for option")
     print("information relating to that command")
 
-def get_expresser(option):
+def get_expresser():
+
+    model_info = config.get_model_info()
+    data_info = config.get_data_info(model_info[ks.kModelDataKey])
+    fac_info = model_info[ks.kModelFACsKey]
     express_method = None
-    if option == 'svm' or option is None:
-        express_method = FESVM()
-    elif option == 'dbn':
-        express_method = FEDeepNet()
-    elif option  == 'cnn':
-        express_method = FEConvNet()
+    if model_info[ks.kModelNameKey] == ks.kBasicCNN:
+        express_method = FEBasicCNN(data_info[ks.kDataImageSize],
+                                    fac_info[ks.kModelFACsCodesKey],
+                                    intensity=fac_info[ks.kModelFACsIntensityKey])
+    elif model_info[ks.kModelNameKey] == ks.kNottinghamCNN:
+        express_method = FENottinghamCNN(data_info[ks.kDataImageSize],
+                                         fac_info[ks.kModelFACsCodesKey],
+                                        intensity=fac_info[ks.kModelFACsIntensityKey])
     else:
+        print("Error: Provided unknown expresser model")
         print_help()
+        quit()
+
+    if not express_method.isTrained:
+        print("Error: Cannot find training data for selected model")
         quit()
 
     return express_method
 
-def get_detector(option):
+def get_detector():
+
+    detector_name = config.get_detector_name()
     detect_method = None
-    if option == 'haar' or option is None:
+    if detector_name == ks.kHaar:
         detect_method = FDHaarCascade()
-    elif option == 'cnn':
-        detect_method = FDConvNet()
     else:
         print_help()
         quit()

@@ -73,9 +73,9 @@ def _process_from_video_obj(capture, detector, expresser, writer=None, show_wind
             new_frame, face = detector.find(frame)
             if face is not None:
 
-                normalized_face = cv2.resize(face, (FRAME_WIDTH, FRAME_WIDTH), cv2.INTER_CUBIC)
+                normalized_face = cv2.resize(face, (expresser.get_image_size(), expresser.get_image_size()), cv2.INTER_CUBIC)
                 data = expresser.predict(normalized_face)
-                #Display data here
+                print data
 
                 if writer is not None:
                     writer.write(normalized_face)

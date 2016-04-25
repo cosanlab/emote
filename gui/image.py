@@ -11,10 +11,11 @@ def process_image(detector, expresser, path, out_file=None):
 
     new_frame, face = detector.find(image)
     if face is not None:
+        #Scale to model's desired size
+        normalized_face = cv2.resize(face, (expresser.get_image_size(), expresser.get_image_size()), cv2.INTER_CUBIC)
 
-        normalized_face = cv2.resize(face, (FRAME_WIDTH, FRAME_HEIGHT), cv2.INTER_CUBIC)
-        write_image_to_file(normalized_face, out_file)
         data = expresser.predict(normalized_face)
+        print(data)
 
         if out_file:
             write_image_to_file(normalized_face, out_file)

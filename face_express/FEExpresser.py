@@ -6,3 +6,6 @@ class FEExpresser:
 
     def predict(self, face):
         raise NotImplementedError
+
+    def get_image_size(self):
+        raise NotImplementedError

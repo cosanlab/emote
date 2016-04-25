@@ -1,5 +1,6 @@
 env/
-logs/*
+logs/*.log
+saved_models/
 .idea/
 cv.*
 *.pyc

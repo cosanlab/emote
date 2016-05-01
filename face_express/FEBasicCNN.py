@@ -26,7 +26,7 @@ class FEBasicCNN(FEExpresser):
         self.isTrained = False
 
         #Model placholders
-        self.x = tf.placeholder(tf.float32, shape=(None, self.image_size, self.image_size, 3), name='x_var')
+        self.x = tf.placeholder(tf.float32, shape=(None, self.image_size, self.image_size, 1), name='x_var')
         self.y_ = tf.placeholder(tf.float32, shape=(None, len(self.codes)), name='y_var')
         self.keep_prob = tf.placeholder(tf.float32, name='keep_prob')
 
@@ -46,7 +46,7 @@ class FEBasicCNN(FEExpresser):
 
     def predict(self, face):
         if self.isTrained:
-            face4d = face.reshape([1, self.image_size, self.image_size, 3])
+            face4d = face.reshape([1, self.image_size, self.image_size, 1])
             prediction = self.session.run(self.output, feed_dict={self.x:face4d,
                                                                   self.keep_prob:1.0})
             logging.info("Predicted: " + str(prediction))
@@ -104,7 +104,7 @@ class FEBasicCNN(FEExpresser):
 
     def _create_network(self):
 
-        layer1_conv_W = weight_variable([5,5,3,32], name="layer1_W")
+        layer1_conv_W = weight_variable([5,5,1,32], name="layer1_W")
         layer1_conv_b = bias_variable([32], name="layer1_b")
 
         layer1_conv = tf.nn.relu(conv2d(self.x, layer1_conv_W, name='layer1_conv') + layer1_conv_b, name='layer1_relu')
@@ -118,22 +118,22 @@ class FEBasicCNN(FEExpresser):
 
         layer3_pool = tf.nn.max_pool(layer2_conv, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='layer3_pool')
 
-        layer4_conv_W = weight_variable(shape = [4,4,64,128], name='layer4_W')
-        layer4_conv_b = bias_variable([128], name='layer4_b')
+        # layer4_conv_W = weight_variable(shape = [4,4,64,128], name='layer4_W')
+        # layer4_conv_b = bias_variable([128], name='layer4_b')
+        #
+        # layer4_conv = tf.nn.relu(conv2d(layer3_pool, layer4_conv_W, name='layer4_conv') + layer4_conv_b, name='layer4_relu')
+        #
+        # layer5_pool = tf.nn.max_pool(layer4_conv, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='layer5_pool')
 
-        layer4_conv = tf.nn.relu(conv2d(layer3_pool, layer4_conv_W, name='layer4_conv') + layer4_conv_b, name='layer4_relu')
+        layer6_full_W = weight_variable(shape= [ (self.image_size / 4) * (self.image_size / 4) * 64, 128], name='layer6_W')
+        layer6_full_b = bias_variable([128], name='layer6_b')
 
-        layer5_pool = tf.nn.max_pool(layer4_conv, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='layer5_pool')
-
-        layer6_full_W = weight_variable(shape= [ (self.image_size / 8) * (self.image_size / 8) * 128, 1024], name='layer6_W')
-        layer6_full_b = bias_variable([1024], name='layer6_b')
-
-        layer5_pool_flat = tf.reshape(layer5_pool, [-1, (self.image_size / 8) * (self.image_size / 8) * 128], name='layer5_pool_flat')
+        layer5_pool_flat = tf.reshape(layer3_pool, [-1, (self.image_size / 4) * (self.image_size / 4) * 64], name='layer5_pool_flat')
         layer6_full = tf.nn.relu(tf.matmul(layer5_pool_flat, layer6_full_W, name='layer6_matmull') + layer6_full_b, name='layer6_full')
 
         layer6_full_drop = tf.nn.dropout(layer6_full, self.keep_prob, name='layer6_drop')
 
-        layer7_soft_W = weight_variable([1024, len(self.codes)], name='layer7_W')
+        layer7_soft_W = weight_variable([128, len(self.codes)], name='layer7_W')
         layer7_soft_b = bias_variable([len(self.codes)], name='layer7_b')
         layer7_soft = tf.nn.softmax(tf.matmul(layer6_full_drop, layer7_soft_W, name='layer7_matmull') + layer7_soft_b, name='layer7_soft')
 

@@ -27,7 +27,7 @@ def modelForTraining():
     if model_name == ks.kNottinghamCNN:
         model = FENottinghamCNN.FENottinghamCNN(repo, fac_info[ks.kModelFACsCodesKey], fac_info[ks.kModelFACsIntensityKey])
     elif model_name == ks.kBasicCNN:
-        model = FEBasicCNN.FEBasicCNN(data_info[ks.kDataImageSize], fac_info[ks.kModelFACsCodesKey], fac_info[ks.kModelFACsIntensityKey])
+        model = FEBasicCNN.FEBasicCNN(model_info[ks.kDataImageSize], fac_info[ks.kModelFACsCodesKey], repo, fac_info[ks.kModelFACsIntensityKey])
     else:
         raise RuntimeError("Unable to find a model corresponding to " + model_name)
 

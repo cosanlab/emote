@@ -62,9 +62,9 @@ for subject_dir in *; do
 		image_file=`pwd`
 		image_file=$image_file/$image_dir
 		image_file=$image_file/`ls -t $image_dir | tail -1`
-		echo -e "python $PROJECT_HOME/emote.py image -o $OUT_DIR/$id.jpg $image_file"
+		echo -e "python $PROJECT_HOME/preprocess.py image $image_file $OUT_DIR/$id.jpg 96"
 
-		python $PROJECT_HOME/emote.py image -o $OUT_DIR/$id.png $image_file
+		python $PROJECT_HOME/preprocess.py image $image_file $OUT_DIR/$id.jpg 96
 	done
 done
 

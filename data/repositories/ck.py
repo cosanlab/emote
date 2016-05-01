@@ -45,7 +45,8 @@ class CKRepository(FACRepository):
             label = FACLabel(float(data[i]), float(data[i+1]))
             labels.append(label)
 
-        image = cv2.imread(self.data_dir + '/' + data[0] + IMAGE_EXT)
+        image = cv2.imread(self.data_dir + '/' + data[0] + IMAGE_EXT, -1)
+        image = image.reshape(len(image), len(image), 1)
         datum = FACDatum(image, labels, data[0])
 
         return datum

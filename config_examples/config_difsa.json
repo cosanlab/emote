@@ -1,0 +1,33 @@
+{
+  "data":{
+    "ck":{
+      "location":"data/ck_cleaned",
+      "image_size":96
+    },
+    "difsa":{
+      "location":"data/DIFSA/",
+      "image_size":96
+    },
+    "amfed": {
+      "location": "data/amfed_cleaned/",
+      "image_size": 96
+    },
+    "haar": {
+      "location": "data/haarcascades/"
+    },
+    "landmarks": {
+      "location": "data/facial_landmarks/"
+    }
+  },
+  "model": {
+    "facs": {
+      "codes": [1,2,4,5,6,9,12,15,17,20,25,26],
+      "intensity": false
+    },
+    "data": "difsa",
+    "name": "basic_cnn",
+    "image_size": 96
+  },
+
+  "detector": "haar"
+}

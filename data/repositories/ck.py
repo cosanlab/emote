@@ -4,6 +4,7 @@ import os
 from data.FAC import FACDatum, FACLabel
 from data.repositories.FACRepository import FACRepository
 from util.paths import DataLoc
+import util.constants as ks
 
 FAC_DATA = 'fac_data'
 BUFFER_SIZE = 50
@@ -14,7 +15,7 @@ class CKRepository(FACRepository):
     def __init__(self):
         path_finder = DataLoc()
 
-        self.data_dir = path_finder.get_path('ck')
+        self.data_dir = path_finder.get_path(ks.kDataCK)
         self.fac_data = os.path.normpath(self.data_dir + '/' + FAC_DATA)
         self.current = 1
 
@@ -25,12 +26,10 @@ class CKRepository(FACRepository):
 
         fp = open(self.fac_data)
         data = []
-        isInRange = False
 
         for i, line in enumerate(fp):
             if self.current <= i < self.current + n:
                 data.append(self._line_to_datum(line))
-                isInRange = True
 
         self.current += n
         fp.close()

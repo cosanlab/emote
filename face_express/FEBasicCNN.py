@@ -68,19 +68,7 @@ class FEBasicCNN(FEExpresser):
 
         while len(items) > 0:
             images = [fac.get_image() for fac in items]
-            label_sets = [fac.get_labels() for fac in items]
-            labels = []
-
-            #Convert FAC lists into equal size code lists
-            for set in label_sets:
-                new_label = []
-                for val in self.codes:
-                    if val in set:
-                        new_label.append(1)
-                    else:
-                        new_label.append(0)
-                labels.append(new_label)
-
+            labels = [fac.get_label_pairs()[1] for fac in items]
 
             #Check Accuracy
             train_accuracy = accuracy.eval(session=self.session,

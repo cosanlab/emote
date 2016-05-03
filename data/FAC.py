@@ -21,12 +21,22 @@ class FACDatum:
         if self.label_map.has_key(label):
             return self.label_map[label]
 
+    def is_zero(self):
+        for fac, intensity in self.label_map.items():
+            if intensity > 0:
+                return False
+        
+        return True
+
     def __eq__(self, other):
         return (isinstance(other, self.__class__)
             and self.id == other.id)
 
     def __hash__(self):
         return hash(self.id)
+
+    def __str__(self):
+        return "ID: %s \nLabels: " % (self.id) + str(self.label_map)
 
 
 class FACLabel:

@@ -2,6 +2,7 @@ import util.constants as ks
 from util import config
 import FENottinghamCNN, FEBasicCNN
 from data.repositories.ck import CKRepository
+from data.repositories.difsa import DIFSARepository
 
 def modelForTraining():
     model_info = config.get_model_info()
@@ -17,6 +18,8 @@ def modelForTraining():
     repo = None
     if data_name == ks.kDataCK:
         repo = CKRepository()
+    elif data_name == ks.kDataDIFSA:
+        repo = DIFSARepository()
     else:
         raise RuntimeError("Unable to find a dataset corresponding to " + data_name)
 

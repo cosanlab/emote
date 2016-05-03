@@ -3,16 +3,17 @@ from FACRepository import FACRepository
 import cv2
 import csv
 import os
+import random
 from data.FAC import FACDatum, FACLabel
 from data.repositories.FACRepository import FACRepository
 from util.paths import DataLoc
 import util.constants as ks
+from util import config
 
 FAC_DATA = 'fac_data'
 IMAGE_DIR = '/Images'
 AU_DIR = '/AUs'
 BUFFER_SIZE = 50
-IMAGE_EXT = '.jpg'
 TESTING_PERCENT = 15
 AUS = [1,2,4,5,6,9,12,15,17,20,25,26]
 
@@ -22,10 +23,9 @@ class DIFSARepository(FACRepository):
         path_finder = DataLoc()
 
         self.data_dir = path_finder.get_path(ks.kDataDIFSA)
-        self.total = 0
         self.training = set()
         self.testing = set()
-
+        self.total = 0
         self._load_from_file()
 
         FACRepository.__init__(self, BUFFER_SIZE)
@@ -33,51 +33,60 @@ class DIFSARepository(FACRepository):
     def _load_from_file(self):
 
         images_dir = self.data_dir + IMAGE_DIR
-        for dir in sorted(os.listdir(images_dir)):
-            for file in sorted(os.listdir(dir)):
-                file_path = dir + '/' + file
-                image = cv2.imread(file_path)
+        for subj in sorted(os.listdir(images_dir)):
+
+            subj_image_dir = images_dir + '/' + subj
+            subject_csv_file = self.data_dir + AU_DIR + '/' + subj
+            subject_ptr = open(subject_csv_file)
+
+            labels = self._get_labels_for_subject(subject_ptr)
+
+            for i, filename in enumerate(sorted(os.listdir(subj_image_dir))):
+
+                file_path = subj_image_dir + '/' + filename
+                image = cv2.imread(file_path, 0)
                 image = image.reshape(len(image), len(image), 1)
+                frame = int(filename[6:])
 
-                fac = self._get_label_for_file(file)
-
-                datum = FACDatum(image, fac, self.total)
-
-                if self.total % 15 == 0:
+                datum = FACDatum(image, labels[frame-1], subj + str(frame))
+                
+                if self.total % TESTING_PERCENT == 0:
                     self.testing.add(datum)
-                else:
+                    self.total += 1
+
+                elif not datum.is_zero():
                     self.training.add(datum)
+                    self.total += 1
 
-                self.total += 1
+    def _get_labels_for_subject(self, file_ptr):
+        labels = []
 
-    def _get_label_for_file(self, filename):
-        facs = []
+        #Open CSC
+        reader = csv.reader(file_ptr, delimiter=',')
 
-        #get info
-        subject = filename[0:5]
-        frame = int(filename[6:])
-        subject_file = self.data_dir + AU_DIR + '/' + subject
-
-        #Open CSV
-        subject_file = open(subject_file)
-        reader = csv.reader(subject_file, delimiter=',')
+        codes = config.get_model_info()[ks.kModelFACsKey][ks.kModelFACsCodesKey]
 
         for i, row in enumerate(reader):
-            if i == frame:
-                for j, intensity in enumerate(row):
-                    if j == 0:
-                        continue
+            facs = []
+            for j, intensity in enumerate(row):
+                if j == 0:
+                    continue
 
-                    facs.append(FACLabel(AUS[j], intensity))
+                if AUS[j-1] in codes:
+                    facs.append(FACLabel(AUS[j-1], int(intensity)))
 
-
-        return facs
+            labels.append(facs)
+            
+        return labels
 
     def _load_data(self, n):
         data = []
 
         for i in xrange(n):
-            data.append(self.training.pop())
+            try:
+                data.append(self.training.pop())
+            except Exception:
+                break
 
         return data
 
@@ -86,3 +95,21 @@ class DIFSARepository(FACRepository):
 
     def get_testing_items(self):
         return list(self.testing)
+
+
+def main():
+    ck = DIFSARepository()
+
+    items = ck.get_items(20)
+
+    for i in xrange(5):
+        items = ck.get_items(50)
+
+    uni = set(items)
+
+    print("Buffer Size: " + str(len(ck.data_buffer)))
+    print("Item length: " + str(len(items)))
+    print("Set size: " + str(len(uni)))
+
+if __name__ == '__main__':
+    main()

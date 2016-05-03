@@ -3,16 +3,17 @@ import logging
 import tensorflow as tf
 
 from FEExpresser import FEExpresser
-from util.tf_util import weight_variable, bias_variable, conv2d
+from util.tf_util import weight_variable, bias_variable, conv2d, mean_square_error, std_dev
 from util import paths
 
 
  # Constants describing the training process.
 MOVING_AVERAGE_DECAY = 0.9999   # The decay to use for the moving average.
 NUM_EPOCHS_PER_DECAY = 350.0      # Epochs after which learning rate decays.
-LEARNING_RATE_DECAY_FACTOR = 0.1  # Learning rate decay factor.
-INITIAL_LEARNING_RATE = 0.1       # Initial learning rate.
-BATCH_SIZE = 20
+LEARNING_RATE_DECAY_FACTOR = 1e-5  # Learning rate decay factor.
+LEARNING_RATE = 0.01       # Initial learning rate.
+MOMENTUM = 0.9
+BATCH_SIZE = 64
 MODEL_NAME = 'FEBasicCNN.ckpt'
 
 class FEBasicCNN(FEExpresser):
@@ -63,20 +64,30 @@ class FEBasicCNN(FEExpresser):
         items = self.repo.get_items(BATCH_SIZE)
         i = 0
 
-        correct_prediction = tf.equal(tf.argmax(self.output,1), tf.argmax(self.y_,1))
-        accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+        mse = mean_square_error(self.output, self.y_)
 
         while len(items) > 0:
             images = [fac.get_image() for fac in items]
-            labels = [fac.get_label_pairs()[1] for fac in items]
+            label_pairs = [fac.get_label_pairs() for fac in items]
+            labels = []
 
-            #Check Accuracy
-            train_accuracy = accuracy.eval(session=self.session,
-                                           feed_dict={self.x: images,
-                                                      self.y_: labels ,
-                                                      self.keep_prob: 1.0})
+            for pairs in label_pairs:
+                new_labels = [pair[1] for pair in pairs]
+                labels.append(new_labels)
 
-            logging.info("Training: step %d, training accuracy %g"%(i, train_accuracy))
+            if i % 10 == 0:
+                #Check Accuracy
+                train_accuracy = mse.eval(session=self.session,
+                                               feed_dict={self.x: images,
+                                                          self.y_: labels ,
+                                                          self.keep_prob: 1.0})
+                # prediction = self.output.eval(session=self.session, feed_dict={self.x: images, self.keep_prob:1.0})
+                logging.info("Training: step %d, mean squared error: %g"%(i, train_accuracy))
+                
+                # for j, predict in enumerate(prediction):
+                #     print
+                #     print("Label:      " + str(labels[j]))
+                #     print("Prediction: " + str(predict))
 
             #Do training
             self.trainer.run(session=self.session,
@@ -86,53 +97,68 @@ class FEBasicCNN(FEExpresser):
             i += 1
             items = self.repo.get_items(BATCH_SIZE)
 
+        #Test
+        test_items = self.repo.get_testing_items()
+
+        images = [fac.get_image() for fac in test_items]
+        label_pairs = [fac.get_label_pairs() for fac in test_items]
+        labels = []
+
+        for pairs in label_pairs:
+            new_labels = [pair[1] for pair in pairs]
+            labels.append(new_labels)
+
+        train_accuracy = mse.eval(session=self.session,
+                                       feed_dict={self.x: images,
+                                                  self.y_: labels ,
+                                                  self.keep_prob: 1.0})
+        logging.info("Testing Accuracy: %g" % (train_accuracy))
+
         self.isTrained = True
         logging.info("Training complete")
-        self.saver.save(self.session, self.get_model_path())
+        #self.saver.save(self.session, paths.get_saved_model_path(MODEL_NAME))
+
 
     def _create_network(self):
 
-        layer1_conv_W = weight_variable([5,5,1,32], name="layer1_W")
-        layer1_conv_b = bias_variable([32], name="layer1_b")
+        layer1_conv_W = weight_variable([5,5,1,64], stddev=std_dev(self.image_size*self.image_size), name="layer1_W")
+        layer1_conv_b = bias_variable([64], name="layer1_b")
+        layer1_conv   = tf.nn.relu(conv2d(self.x, layer1_conv_W, name='layer1_conv') + layer1_conv_b, name='layer1_relu')
+        layer1_pool   = tf.nn.max_pool(layer1_conv, ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME', name='layer1_pool')
+        # layer1_drop   = tf.nn.dropout(layer1_pool, self.keep_prob, name='layer1_drop')
 
-        layer1_conv = tf.nn.relu(conv2d(self.x, layer1_conv_W, name='layer1_conv') + layer1_conv_b, name='layer1_relu')
+        layer2_conv_W = weight_variable([5,5,64,128], stddev=std_dev(64), name='layer2_W')
+        layer2_conv_b = bias_variable([128], name='layer2_b')
+        layer2_conv   = tf.nn.relu(conv2d(layer1_pool, layer2_conv_W) + layer2_conv_b, name='layer2_relu')
+        layer2_pool   = tf.nn.max_pool(layer2_conv, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='layer2_pool')
 
-        layer1_pool = tf.nn.max_pool(layer1_conv, ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME', name='layer1_pool')
+        image_size_8  = self.image_size / 8
+        layer3_conv_W = weight_variable([5,5,128,256], stddev=std_dev(128), name='layer2_W')
+        layer3_conv_b = bias_variable([256], name='layer2_b')
+        layer3_conv   = tf.nn.relu(conv2d(layer2_pool, layer3_conv_W) + layer3_conv_b, name='layer2_relu')
+        layer3_pool   = tf.nn.max_pool(layer3_conv, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='layer2_pool')
+        # layer3_drop   = tf.nn.dropout(layer3_pool, self.keep_prob, name='layer3_drop')
 
-        layer2_conv_W = weight_variable([5,5,32,64], name='layer2_W')
-        layer2_conv_b = bias_variable([64], name='layer2_b')
+        layer3_flat = tf.reshape(layer3_pool, [-1, image_size_8 * image_size_8 * 256], name='layer2_pool_flat')
 
-        layer2_conv = tf.nn.relu(conv2d(layer1_pool, layer2_conv_W, ) + layer2_conv_b, name='layer2_relu')
+        layer4_full_W = weight_variable(shape=[image_size_8 * image_size_8 * 256, 300], name='layer3_W')
+        layer4_full_b = bias_variable([300], name='layer3_b')
+        layer4_full   = tf.nn.relu(tf.matmul(layer3_flat, layer4_full_W, name='layer6_matmull') + layer4_full_b, name='layer4_full')
+        layer4_drop   = tf.nn.dropout(layer4_full, self.keep_prob, name='layer4_drop')
 
-        layer3_pool = tf.nn.max_pool(layer2_conv, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='layer3_pool')
+        layer5_soft_W = weight_variable(shape=[300, len(codes)], name='layer3_W')
+        layer5_soft_b = bias_variable([len(self.codes)], name='layer3_b')
+        layer5_soft   = tf.nn.softmax(tf.matmul(layer4_drop, layer5_soft_W) + layer5_soft_b)
 
-        # layer4_conv_W = weight_variable(shape = [4,4,64,128], name='layer4_W')
-        # layer4_conv_b = bias_variable([128], name='layer4_b')
-        #
-        # layer4_conv = tf.nn.relu(conv2d(layer3_pool, layer4_conv_W, name='layer4_conv') + layer4_conv_b, name='layer4_relu')
-        #
-        # layer5_pool = tf.nn.max_pool(layer4_conv, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='layer5_pool')
-
-        layer6_full_W = weight_variable(shape= [ (self.image_size / 4) * (self.image_size / 4) * 64, 128], name='layer6_W')
-        layer6_full_b = bias_variable([128], name='layer6_b')
-
-        layer5_pool_flat = tf.reshape(layer3_pool, [-1, (self.image_size / 4) * (self.image_size / 4) * 64], name='layer5_pool_flat')
-        layer6_full = tf.nn.relu(tf.matmul(layer5_pool_flat, layer6_full_W, name='layer6_matmull') + layer6_full_b, name='layer6_full')
-
-        layer6_full_drop = tf.nn.dropout(layer6_full, self.keep_prob, name='layer6_drop')
-
-        layer7_soft_W = weight_variable([128, len(self.codes)], name='layer7_W')
-        layer7_soft_b = bias_variable([len(self.codes)], name='layer7_b')
-        layer7_soft = tf.nn.softmax(tf.matmul(layer6_full_drop, layer7_soft_W, name='layer7_matmull') + layer7_soft_b, name='layer7_soft')
-
-        cross_entropy = -tf.reduce_sum(self.y_*tf.log(layer7_soft))
-        train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
+        cross_entropy = - tf.sum(self.y_ * tf.log(layer5_soft))
+        train_step = tf.train.RMSPropOptimizer(LEARNING_RATE, LEARNING_RATE_DECAY_FACTOR, MOMENTUM).minimize(cross_entropy)
         init_ops = tf.initialize_all_variables()
 
-        return train_step, layer7_soft, init_ops
+        return train_step, layer4_drop, init_ops
 
 
+def main():
+    express = FEBasicCNN(96, [1,2,4])
 
-
-
-
+if __name__ == '__main__':
+    main()

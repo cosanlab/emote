@@ -93,7 +93,7 @@ class DIFSARepository(FACRepository):
 
         return data
 
-    def reload_repo(self):
+    def reset_repo(self):
         self.training = set(self.used_data)
         self.used_data = []
 

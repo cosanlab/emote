@@ -27,6 +27,7 @@ class FEAggregatedCNN(FEExpresser):
     def train(self):
         for cnn in self.cnns.values():
             cnn.train()
+            self.repo.reset_repo()
 
     def get_image_size(self):
         return self.image_size

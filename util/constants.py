@@ -9,6 +9,7 @@ kHaar = 'haar'
 #----------Expression Model Names----------
 kNottinghamCNN = 'nottingham'
 kBasicCNN = 'basic_cnn'
+kAggregatedCNN = 'aggregated_cnn'
 
 
 #Data Name keys

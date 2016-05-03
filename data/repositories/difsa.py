@@ -23,6 +23,7 @@ class DIFSARepository(FACRepository):
         path_finder = DataLoc()
 
         self.data_dir = path_finder.get_path(ks.kDataDIFSA)
+        self.used_data = []
         self.training = set()
         self.testing = set()
         self.total = 0
@@ -84,14 +85,17 @@ class DIFSARepository(FACRepository):
 
         for i in xrange(n):
             try:
-                data.append(self.training.pop())
+                datum = self.training.pop()
+                data.append(datum)
+                self.used_data.append(datum)
             except Exception:
                 break
 
         return data
 
     def reload_repo(self):
-        self._load_from_file()
+        self.training = set(self.used_data)
+        self.used_data = []
 
     def get_testing_items(self):
         return list(self.testing)

@@ -14,21 +14,21 @@ LEARNING_RATE_DECAY_FACTOR = 1e-5  # Learning rate decay factor.
 LEARNING_RATE = 0.01       # Initial learning rate.
 MOMENTUM = 0.9
 BATCH_SIZE = 64
-MODEL_NAME = 'FEBasicCNN.ckpt'
+MODEL_NAME = 'FESingleAUCNN.ckpt'
+OUTPUT_SIZE = 2
 
-class FEBasicCNN(FEExpresser):
+class FESingleAUCNN(FEExpresser):
 
-    def __init__(self, image_size, codes, repo=None, intensity=False):
-        logging.info("Initializing FEBasicCNN")
+    def __init__(self, image_size, au, repo=None):
+        logging.info("Initializing FESingleAUCNN for: " + str(au))
         self.repo = repo
-        self.codes = codes
-        self.intensity = intensity
+        self.au = au
         self.image_size = image_size
         self.isTrained = False
 
         #Model placholders
         self.x = tf.placeholder(tf.float32, shape=(None, self.image_size, self.image_size, 1), name='x_var')
-        self.y_ = tf.placeholder(tf.float32, shape=(None, len(self.codes)), name='y_var')
+        self.y_ = tf.placeholder(tf.float32, shape=(None, OUTPUT_SIZE), name='y_var')
         self.keep_prob = tf.placeholder(tf.float32, name='keep_prob')
 
         #Graph variables
@@ -64,30 +64,21 @@ class FEBasicCNN(FEExpresser):
         items = self.repo.get_items(BATCH_SIZE)
         i = 0
 
-        mse = mean_square_error(self.output, self.y_)
+        correct_prediction = tf.equal(tf.argmax(self.output,1), tf.argmax(self.y_,1))
+        accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
         while len(items) > 0:
-            images = [fac.get_image() for fac in items]
-            label_pairs = [fac.get_label_pairs() for fac in items]
-            labels = []
 
-            for pairs in label_pairs:
-                new_labels = [pair[1] for pair in pairs]
-                labels.append(new_labels)
+            images, labels = self._items_to_lists(items)
 
             if i % 10 == 0:
                 #Check Accuracy
-                train_accuracy = mse.eval(session=self.session,
+                train_accuracy = accuracy.eval(session=self.session,
                                                feed_dict={self.x: images,
                                                           self.y_: labels ,
                                                           self.keep_prob: 1.0})
-                # prediction = self.output.eval(session=self.session, feed_dict={self.x: images, self.keep_prob:1.0})
                 logging.info("Training: step %d, mean squared error: %g"%(i, train_accuracy))
-                
-                # for j, predict in enumerate(prediction):
-                #     print
-                #     print("Label:      " + str(labels[j]))
-                #     print("Prediction: " + str(predict))
+
 
             #Do training
             self.trainer.run(session=self.session,
@@ -99,20 +90,14 @@ class FEBasicCNN(FEExpresser):
 
         #Test
         test_items = self.repo.get_testing_items()
+        images, labels = self._items_to_lists(test_items)
 
-        images = [fac.get_image() for fac in test_items]
-        label_pairs = [fac.get_label_pairs() for fac in test_items]
-        labels = []
 
-        for pairs in label_pairs:
-            new_labels = [pair[1] for pair in pairs]
-            labels.append(new_labels)
-
-        train_accuracy = mse.eval(session=self.session,
+        train_accuracy = accuracy.eval(session=self.session,
                                        feed_dict={self.x: images,
                                                   self.y_: labels ,
                                                   self.keep_prob: 1.0})
-        logging.info("Testing Accuracy: %g" % (train_accuracy))
+        logging.info("Testing Accuracy: %g" % train_accuracy)
 
         self.isTrained = True
         logging.info("Training complete")
@@ -146,19 +131,31 @@ class FEBasicCNN(FEExpresser):
         layer4_full   = tf.nn.relu(tf.matmul(layer3_flat, layer4_full_W, name='layer6_matmull') + layer4_full_b, name='layer4_full')
         layer4_drop   = tf.nn.dropout(layer4_full, self.keep_prob, name='layer4_drop')
 
-        layer5_soft_W = weight_variable(shape=[300, len(codes)], name='layer3_W')
-        layer5_soft_b = bias_variable([len(self.codes)], name='layer3_b')
+        layer5_soft_W = weight_variable(shape=[300, OUTPUT_SIZE], name='layer3_W')
+        layer5_soft_b = bias_variable([OUTPUT_SIZE], name='layer3_b')
         layer5_soft   = tf.nn.softmax(tf.matmul(layer4_drop, layer5_soft_W) + layer5_soft_b)
 
-        cross_entropy = - tf.sum(self.y_ * tf.log(layer5_soft))
+        cross_entropy = -tf.reduce_sum(self.y_*tf.log(layer5_soft))
         train_step = tf.train.RMSPropOptimizer(LEARNING_RATE, LEARNING_RATE_DECAY_FACTOR, MOMENTUM).minimize(cross_entropy)
         init_ops = tf.initialize_all_variables()
 
-        return train_step, layer4_drop, init_ops
+        return train_step, layer5_soft, init_ops
 
+    def _items_to_lists(self, items):
+        images = [fac.get_image() for fac in items]
+        labels = []
+
+        for fac in items:
+            label = []
+            if fac.has_au(self.au):
+                label.append([0, 1])
+            else:
+                label.append([1, 0])
+
+        return images, labels
 
 def main():
-    express = FEBasicCNN(96, [1,2,4])
+    express = FESingleAUCNN(96, 1)
 
 if __name__ == '__main__':
     main()

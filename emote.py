@@ -11,7 +11,6 @@ from face_express import models
 from face_detect.FDConvNet import FDConvNet
 from face_detect.FDHaarCascade import FDHaarCascade
 from face_express.FEBasicCNN import FEBasicCNN
-from face_express.FENottinghamCNN import FENottinghamCNN
 
 def main():
 
@@ -129,10 +128,7 @@ def get_expresser():
         express_method = FEBasicCNN(data_info[ks.kDataImageSize],
                                     fac_info[ks.kModelFACsCodesKey],
                                     intensity=fac_info[ks.kModelFACsIntensityKey])
-    elif model_info[ks.kModelNameKey] == ks.kNottinghamCNN:
-        express_method = FENottinghamCNN(data_info[ks.kDataImageSize],
-                                         fac_info[ks.kModelFACsCodesKey],
-                                        intensity=fac_info[ks.kModelFACsIntensityKey])
+
     else:
         print("Error: Provided unknown expresser model")
         print_help()

@@ -57,7 +57,7 @@ class DIFSARepository(FACRepository):
 
                 else:
                     for au in AUS:
-                        if datum.has_au(au) or random.random() > 0.6:
+                        if datum.has_au(au) or random.random() > 0.95:
                             self.training[au].add(datum)
 
                     self.total += 1

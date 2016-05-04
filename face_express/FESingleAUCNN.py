@@ -11,11 +11,11 @@ from util import paths
 MOVING_AVERAGE_DECAY = 0.9999   # The decay to use for the moving average.
 NUM_EPOCHS_PER_DECAY = 350.0      # Epochs after which learning rate decays.
 LEARNING_RATE_DECAY_FACTOR = 1e-5  # Learning rate decay factor.
-LEARNING_RATE = 0.01       # Initial learning rate.
+LEARNING_RATE = 0.001       # Initial learning rate.
 MOMENTUM = 0.9
 BATCH_SIZE = 64
 MODEL_NAME = 'FESingleAUCNN.ckpt'
-OUTPUT_SIZE = 1
+OUTPUT_SIZE = 2
 
 class FESingleAUCNN(FEExpresser):
 
@@ -64,7 +64,7 @@ class FESingleAUCNN(FEExpresser):
         items = self.repo.get_data_for_au(BATCH_SIZE, self.au)
         i = 0
 
-        correct_prediction = tf.equal(tf.argmax(self.output,1), tf.argmax(self.y_,1))
+        correct_prediction = tf.equal(tf.argmax(self.output, 1), tf.argmax(self.y_, 1))
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
         while len(items) > 0:
@@ -87,7 +87,10 @@ class FESingleAUCNN(FEExpresser):
                 print("Label: " + str(labels[0]))
                 print("Prediction: " + str(prediction[0]))
 
-                positive = len([lab[0] == 1 for lab in labels])
+                positive = 0
+                for lab in labels:
+                    positive = positive + 1 if lab[0] == 1 else positive
+
                 print("Percent positive: " + str(positive/float(len(labels))))
 
 
@@ -142,19 +145,12 @@ class FESingleAUCNN(FEExpresser):
         layer4_full   = tf.nn.relu(tf.matmul(layer3_flat, layer4_full_W, name='layer6_matmull') + layer4_full_b, name='layer4_full')
         layer4_drop   = tf.nn.dropout(layer4_full, self.keep_prob, name='layer4_drop')
 
-        tf.Print(layer4_drop, [layer4_drop], "Layer4_drop: ")
-
         layer5_soft_W = weight_variable(shape=[300, OUTPUT_SIZE], name='layer3_W')
         layer5_soft_b = bias_variable([OUTPUT_SIZE], name='layer3_b')
         layer5_soft   = tf.nn.softmax(tf.matmul(layer4_drop, layer5_soft_W) + layer5_soft_b)
 
-        tf.Print(layer5_soft_W, [layer5_soft_W], "Soft_W: ")
-        tf.Print(layer5_soft_b, [layer5_soft_b], "Soft_b: ")
-        tf.Print(layer5_soft, [layer5_soft], "Soft: ")
-
         cross_entropy = -tf.reduce_sum(self.y_*tf.log(layer5_soft + 1e50))
-        tf.Print(cross_entropy, [cross_entropy], "cross_entropy: ")
-        train_step = tf.train.RMSPropOptimizer(LEARNING_RATE, LEARNING_RATE_DECAY_FACTOR, MOMENTUM).minimize(cross_entropy)
+        train_step = tf.train.AdamOptimizer(LEARNING_RATE, LEARNING_RATE_DECAY_FACTOR).minimize(cross_entropy)
         init_ops = tf.initialize_all_variables()
 
         return train_step, layer5_soft, init_ops
@@ -166,9 +162,9 @@ class FESingleAUCNN(FEExpresser):
         for fac in items:
             images.append(fac.get_image())
             if fac.has_au(self.au):
-                labels.append([1])
+                labels.append([0, 1])
             else:
-                labels.append([0])
+                labels.append([1, 0])
 
         return images, labels
 

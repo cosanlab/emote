@@ -23,8 +23,8 @@ class DIFSARepository(FACRepository):
         path_finder = DataLoc()
 
         self.data_dir = path_finder.get_path(ks.kDataDIFSA)
-        self.used_data = []
-        self.training = set()
+        self.used_data = {au: [] for au in AUS}
+        self.training = {au: set() for au in AUS}
         self.testing = set()
         self.total = 0
         self._load_from_file()
@@ -55,8 +55,11 @@ class DIFSARepository(FACRepository):
                     self.testing.add(datum)
                     self.total += 1
 
-                elif not datum.is_zero():
-                    self.training.add(datum)
+                else:
+                    for au in AUS:
+                        if datum.has_au(au) or random.random() > 0.6:
+                            self.training[au].add(datum)
+
                     self.total += 1
 
     def _get_labels_for_subject(self, file_ptr):
@@ -93,9 +96,22 @@ class DIFSARepository(FACRepository):
 
         return data
 
-    def reset_repo(self):
-        self.training = set(self.used_data)
-        self.used_data = []
+    def get_data_for_au(self, n, au):
+        data = []
+
+        for i in xrange(n):
+            try:
+                datum = self.training[au].pop()
+                data.append(datum)
+                self.used_data[au].append(datum)
+            except Exception:
+                break
+
+        return data
+
+    def reset_repo_for_au(self, au):
+        self.training[au] = set(self.used_data)
+        self.used_data[au] = []
 
     def get_testing_items(self):
         return list(self.testing)

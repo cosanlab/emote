@@ -1,6 +1,6 @@
 import util.constants as ks
 from util import config
-import FEAggregatedCNN, FEBasicCNN
+import FEAggregatedCNN
 from data.repositories.ck import CKRepository
 from data.repositories.difsa import DIFSARepository
 
@@ -26,9 +26,7 @@ def modelForTraining():
     #Get the correct model
     model = None
 
-    if model_name == ks.kBasicCNN:
-        model = FEBasicCNN.FEBasicCNN(model_info[ks.kDataImageSize], fac_info[ks.kModelFACsCodesKey], repo, fac_info[ks.kModelFACsIntensityKey])
-    elif model_name == ks.kAggregatedCNN:
+    if model_name == ks.kAggregatedCNN:
         model = FEAggregatedCNN.FEAggregatedCNN(model_info[ks.kDataImageSize], fac_info[ks.kModelFACsCodesKey], repo)
     else:
         raise RuntimeError("Unable to find a model corresponding to " + model_name)

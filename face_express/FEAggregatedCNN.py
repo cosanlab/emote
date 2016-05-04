@@ -1,6 +1,7 @@
 from FEExpresser import FEExpresser
 from FESingleAUCNN import FESingleAUCNN
 import tensorflow as tf
+import thread
 
 class FEAggregatedCNN(FEExpresser):
 
@@ -9,6 +10,7 @@ class FEAggregatedCNN(FEExpresser):
         self.codes = codes
         self.repo = repo
         self.cnns = {}
+        self.isTrained = False
 
         for code in self.codes:
             cnn = FESingleAUCNN(self.image_size, code, repo)
@@ -25,9 +27,11 @@ class FEAggregatedCNN(FEExpresser):
         return prediction
 
     def train(self):
-        for cnn in self.cnns.values():
+        for au, cnn in self.cnns.items():
             cnn.train()
-            self.repo.reset_repo()
+            self.repo.reset_repo_for_au(au)
+
+        self.isTrained = True
 
     def get_image_size(self):
         return self.image_size

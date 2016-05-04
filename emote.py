@@ -8,9 +8,8 @@ from util.logger import setupLogging
 from util import config
 from util import constants as ks
 from face_express import models
-from face_detect.FDConvNet import FDConvNet
 from face_detect.FDHaarCascade import FDHaarCascade
-from face_express.FEBasicCNN import FEBasicCNN
+from face_express.FEAggregatedCNN import FEAggregatedCNN
 
 def main():
 
@@ -124,8 +123,8 @@ def get_expresser():
     data_info = config.get_data_info(model_info[ks.kModelDataKey])
     fac_info = model_info[ks.kModelFACsKey]
     express_method = None
-    if model_info[ks.kModelNameKey] == ks.kBasicCNN:
-        express_method = FEBasicCNN(data_info[ks.kDataImageSize],
+    if model_info[ks.kModelNameKey] == ks.kAggregatedCNN:
+        express_method = FEAggregatedCNN(data_info[ks.kDataImageSize],
                                     fac_info[ks.kModelFACsCodesKey],
                                     intensity=fac_info[ks.kModelFACsIntensityKey])
 

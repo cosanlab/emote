@@ -18,11 +18,7 @@ class FACDatum:
         return self.label_map.items()
 
     def has_au(self, au):
-        for key, val in self.label_map.items():
-            if key == au:
-                return True
-
-        return False
+        return self.label_map[au] >= 2
 
     def intensity_for_label(self, label):
         if self.label_map.has_key(label):

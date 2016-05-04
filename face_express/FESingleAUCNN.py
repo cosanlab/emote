@@ -15,7 +15,7 @@ LEARNING_RATE = 0.01       # Initial learning rate.
 MOMENTUM = 0.9
 BATCH_SIZE = 64
 MODEL_NAME = 'FESingleAUCNN.ckpt'
-OUTPUT_SIZE = 2
+OUTPUT_SIZE = 1
 
 class FESingleAUCNN(FEExpresser):
 
@@ -59,9 +59,9 @@ class FESingleAUCNN(FEExpresser):
         return self.image_size
 
     def train(self):
-        logging.info("Beginning training session")
+        logging.info("Beginning training session for AU: " + str(self.au))
 
-        items = self.repo.get_items(BATCH_SIZE)
+        items = self.repo.get_data_for_au(BATCH_SIZE, self.au)
         i = 0
 
         correct_prediction = tf.equal(tf.argmax(self.output,1), tf.argmax(self.y_,1))
@@ -71,13 +71,24 @@ class FESingleAUCNN(FEExpresser):
 
             images, labels = self._items_to_lists(items)
 
-            if i % 10 == 0:
+            if i % 5 == 0:
                 #Check Accuracy
                 train_accuracy = accuracy.eval(session=self.session,
                                                feed_dict={self.x: images,
                                                           self.y_: labels ,
                                                           self.keep_prob: 1.0})
-                logging.info("Training: step %d, mean squared error: %g"%(i, train_accuracy))
+                logging.info("Training: step %d, accuracy: %g"%(i, train_accuracy))
+
+                prediction = self.output.eval(session=self.session,
+                                 feed_dict={self.x: [images[0]],
+                                            self.y_:[labels[0]],
+                                            self.keep_prob: 1.0})
+
+                print("Label: " + str(labels[0]))
+                print("Prediction: " + str(prediction[0]))
+
+                positive = len([lab[0] == 1 for lab in labels])
+                print("Percent positive: " + str(positive/float(len(labels))))
 
 
             #Do training
@@ -86,7 +97,7 @@ class FESingleAUCNN(FEExpresser):
                                         self.y_: labels,
                                         self.keep_prob: 0.5})
             i += 1
-            items = self.repo.get_items(BATCH_SIZE)
+            items = self.repo.get_data_for_au(BATCH_SIZE, self.au)
 
         #Test
         test_items = self.repo.get_testing_items()
@@ -131,26 +142,33 @@ class FESingleAUCNN(FEExpresser):
         layer4_full   = tf.nn.relu(tf.matmul(layer3_flat, layer4_full_W, name='layer6_matmull') + layer4_full_b, name='layer4_full')
         layer4_drop   = tf.nn.dropout(layer4_full, self.keep_prob, name='layer4_drop')
 
+        tf.Print(layer4_drop, [layer4_drop], "Layer4_drop: ")
+
         layer5_soft_W = weight_variable(shape=[300, OUTPUT_SIZE], name='layer3_W')
         layer5_soft_b = bias_variable([OUTPUT_SIZE], name='layer3_b')
         layer5_soft   = tf.nn.softmax(tf.matmul(layer4_drop, layer5_soft_W) + layer5_soft_b)
 
-        cross_entropy = -tf.reduce_sum(self.y_*tf.log(layer5_soft))
+        tf.Print(layer5_soft_W, [layer5_soft_W], "Soft_W: ")
+        tf.Print(layer5_soft_b, [layer5_soft_b], "Soft_b: ")
+        tf.Print(layer5_soft, [layer5_soft], "Soft: ")
+
+        cross_entropy = -tf.reduce_sum(self.y_*tf.log(layer5_soft + 1e50))
+        tf.Print(cross_entropy, [cross_entropy], "cross_entropy: ")
         train_step = tf.train.RMSPropOptimizer(LEARNING_RATE, LEARNING_RATE_DECAY_FACTOR, MOMENTUM).minimize(cross_entropy)
         init_ops = tf.initialize_all_variables()
 
         return train_step, layer5_soft, init_ops
 
     def _items_to_lists(self, items):
-        images = [fac.get_image() for fac in items]
+        images = []
         labels = []
 
         for fac in items:
-            label = []
+            images.append(fac.get_image())
             if fac.has_au(self.au):
-                label.append([0, 1])
+                labels.append([1])
             else:
-                label.append([1, 0])
+                labels.append([0])
 
         return images, labels
 

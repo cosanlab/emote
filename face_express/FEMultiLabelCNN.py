@@ -3,7 +3,7 @@ import logging
 import tensorflow as tf
 
 from FEExpresser import FEExpresser
-from util.tf_util import weight_variable, bias_variable, conv2d, mean_square_error, std_dev
+from util.tf_util import weight_variable, bias_variable, conv2d, std_dev
 from util import paths
 
 
@@ -15,20 +15,19 @@ LEARNING_RATE = 3.0       # Initial learning rate.
 MOMENTUM = 0.9
 BATCH_SIZE = 64
 MODEL_NAME = 'FESingleAUCNN.ckpt'
-OUTPUT_SIZE = 2
 
-class FESingleAUCNN(FEExpresser):
+class FEMultiLabelCNN(FEExpresser):
 
-    def __init__(self, image_size, au, repo=None):
-        logging.info("Initializing FESingleAUCNN for: " + str(au))
+    def __init__(self, image_size, codes, repo=None):
+        logging.info("Initializing FEMultiLabelCNN")
         self.repo = repo
-        self.au = au
+        self.codes = codes
         self.image_size = image_size
         self.isTrained = False
 
         #Model placholders
         self.x = tf.placeholder(tf.float32, shape=(None, self.image_size, self.image_size, 1), name='x_var')
-        self.y_ = tf.placeholder(tf.float32, shape=(None, OUTPUT_SIZE), name='y_var')
+        self.y_ = tf.placeholder(tf.float32, shape=(None, len(self.codes)), name='y_var')
         self.keep_prob = tf.placeholder(tf.float32, name='keep_prob')
 
         #Graph variables
@@ -59,12 +58,12 @@ class FESingleAUCNN(FEExpresser):
         return self.image_size
 
     def train(self):
-        logging.info("Beginning training session for AU: " + str(self.au))
+        logging.info("Beginning training session for MultiLabelCNN")
 
-        items = self.repo.get_data_for_au(BATCH_SIZE, self.au)
+        items = self.repo.get_items(BATCH_SIZE, nonzero=True)
         i = 0
 
-        correct_prediction = tf.equal(tf.argmax(self.output, 1), tf.argmax(self.y_, 1))
+        correct_prediction = tf.equal(self.output, self.y_)
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
         while len(items) > 0:
@@ -100,7 +99,7 @@ class FESingleAUCNN(FEExpresser):
                                         self.y_: labels,
                                         self.keep_prob: 0.5})
             i += 1
-            items = self.repo.get_data_for_au(BATCH_SIZE, self.au)
+            items = self.repo.get_items(BATCH_SIZE, nonzero=True)
 
         #Test
         test_items = self.repo.get_testing_items()
@@ -145,15 +144,15 @@ class FESingleAUCNN(FEExpresser):
         layer4_full   = tf.nn.relu(tf.matmul(layer3_flat, layer4_full_W, name='layer6_matmull') + layer4_full_b, name='layer4_full')
         layer4_drop   = tf.nn.dropout(layer4_full, self.keep_prob, name='layer4_drop')
 
-        layer5_soft_W = weight_variable(shape=[300, OUTPUT_SIZE], name='layer3_W')
-        layer5_soft_b = bias_variable([OUTPUT_SIZE], name='layer3_b')
-        layer5_soft   = tf.nn.softmax(tf.matmul(layer4_drop, layer5_soft_W) + layer5_soft_b)
+        layer5_sig_W = weight_variable(shape=[300, len(self.codes)], name='layer3_W')
+        layer5_sig_b = bias_variable([len(self.codes)], name='layer3_b')
+        layer5_sig   = tf.nn.sigmoid(tf.matmul(layer4_drop, layer5_sig_W) + layer5_sig_b)
 
-        cross_entropy = -tf.reduce_sum(self.y_*tf.log(layer5_soft + 1e50))
-        train_step = tf.train.AdamOptimizer(LEARNING_RATE).minimize(cross_entropy)
+        cost = tf.reduce_sum(tf.nn.sigmoid_cross_entropy_with_logits(layer5_sig, self.y_))
+        train_step = tf.train.AdamOptimizer(LEARNING_RATE).minimize(cost)
         init_ops = tf.initialize_all_variables()
 
-        return train_step, layer5_soft, init_ops
+        return train_step, layer5_sig, init_ops
 
     def _items_to_lists(self, items):
         images = []
@@ -161,15 +160,19 @@ class FESingleAUCNN(FEExpresser):
 
         for fac in items:
             images.append(fac.get_image())
-            if fac.has_au(self.au):
-                labels.append([0, 1])
-            else:
-                labels.append([1, 0])
+            new_labels = []
+            for code in self.codes:
+                if code in fac.get_labels():
+                    new_labels.append(1)
+                else:
+                    new_labels.append(0)
+
+            labels.append(new_labels)
 
         return images, labels
 
 def main():
-    express = FESingleAUCNN(96, 1)
-
+    print("Test")
+    e
 if __name__ == '__main__':
     main()

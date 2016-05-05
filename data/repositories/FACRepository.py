@@ -15,11 +15,17 @@ class FACRepository:
         return datum
 
     #Must return some number of
-    def get_items(self, x):
+    def get_items(self, x, nonzero=False):
         list = []
 
         if len(self.data_buffer) != 0:
             for i in range(x):
+                datum = self.data_buffer.pop()
+                if nonzero and not datum.is_zero():
+                    list.append(datum)
+                else:
+                    list.append(datum)
+
                 list.append(self.data_buffer.pop(0))
 
                 if len(self.data_buffer) == 0:

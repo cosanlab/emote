@@ -23,8 +23,10 @@ class DIFSARepository(FACRepository):
         path_finder = DataLoc()
 
         self.data_dir = path_finder.get_path(ks.kDataDIFSA)
-        self.used_data = {au: [] for au in AUS}
-        self.training = {au: set() for au in AUS}
+        self.used_data = []
+        self.used_data_au = {au: [] for au in AUS}
+        self.training = set()
+        self.training_au = {au: set() for au in AUS}
         self.testing = set()
         self.total = 0
         self._load_from_file()
@@ -55,10 +57,12 @@ class DIFSARepository(FACRepository):
                     self.testing.add(datum)
                     self.total += 1
 
-                else:
+                elif not datum.is_zero() or (datum.is_zero() and random.random() > 0.99):
+                    self.training.add(datum)
+
                     for au in AUS:
-                        if datum.has_au(au) or random.random() > 0.95:
-                            self.training[au].add(datum)
+                        if datum.has_au(au) or (not datum.has_au(au) and random.random() > 0.98):
+                            self.training_au[au].add(datum)
 
                     self.total += 1
 
@@ -101,17 +105,21 @@ class DIFSARepository(FACRepository):
 
         for i in xrange(n):
             try:
-                datum = self.training[au].pop()
+                datum = self.training_au[au].pop()
                 data.append(datum)
-                self.used_data[au].append(datum)
+                self.used_data_au[au].append(datum)
             except Exception:
                 break
 
         return data
 
     def reset_repo_for_au(self, au):
-        self.training[au] = set(self.used_data)
-        self.used_data[au] = []
+        self.training_au[au] = set(self.used_data_au)
+        self.used_data_au[au] = []
+
+    def reset_repo(self):
+        self.training = set(self.used_data)
+        self.used_data = []
 
     def get_testing_items(self):
         return list(self.testing)

@@ -16,17 +16,15 @@ class FACRepository:
 
     #Must return some number of
     def get_items(self, x, nonzero=False):
-        list = []
+        data = []
 
         if len(self.data_buffer) != 0:
-            for i in range(x):
-                datum = self.data_buffer.pop()
+            while len(data) < x:
+                datum = self.data_buffer.pop(0)
                 if nonzero and not datum.is_zero():
-                    list.append(datum)
+                    data.append(datum)
                 else:
-                    list.append(datum)
-
-                list.append(self.data_buffer.pop(0))
+                    data.append(datum)
 
                 if len(self.data_buffer) == 0:
                     self.load_data_into_buffer(self.buffer_size)
@@ -36,7 +34,7 @@ class FACRepository:
                 if len(self.data_buffer) == 0:
                     break
 
-        return list
+        return data
 
 
     def load_data_into_buffer(self, n):

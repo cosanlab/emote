@@ -3,17 +3,13 @@ import logging
 import tensorflow as tf
 
 from FEExpresser import FEExpresser
-from util.tf_util import weight_variable, bias_variable, conv2d, std_dev
-from util import paths
+from util.tf_util import weight_variable, bias_variable, conv2d, max_pool_2x2
 
 
  # Constants describing the training process.
-MOVING_AVERAGE_DECAY = 0.9999   # The decay to use for the moving average.
-NUM_EPOCHS_PER_DECAY = 350.0      # Epochs after which learning rate decays.
-LEARNING_RATE_DECAY_FACTOR = 1e-5  # Learning rate decay factor.
-LEARNING_RATE = 3.0       # Initial learning rate.
+LEARNING_RATE = 1e-5     # Initial learning rate.
 MOMENTUM = 0.9
-BATCH_SIZE = 64
+BATCH_SIZE = 32
 MODEL_NAME = 'FESingleAUCNN.ckpt'
 
 class FEMultiLabelCNN(FEExpresser):
@@ -65,6 +61,10 @@ class FEMultiLabelCNN(FEExpresser):
 
         correct_prediction = tf.equal(self.output, self.y_)
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+        tf.scalar_summary('accuracy', accuracy)
+
+        merged = tf.merge_all_summaries()
+        train_writer = tf.train.SummaryWriter(paths.get_project_home() + '/logs/summaries', self.session.graph)
 
         while len(items) > 0:
 
@@ -83,21 +83,22 @@ class FEMultiLabelCNN(FEExpresser):
                                             self.y_:[labels[0]],
                                             self.keep_prob: 1.0})
 
-                print("Label: " + str(labels[0]))
-                print("Prediction: " + str(prediction[0]))
-
-                positive = 0
-                for lab in labels:
-                    positive = positive + 1 if lab[1] == 1 else positive
-
-                print("Percent positive: " + str(positive/float(len(labels))))
+                logging.info("Label: " + str(labels[0]))
+                logging.info("Prediction: " + str(prediction[0]))
+                logging.info("----------------------------------")
 
 
             #Do training
+            feed_dict = {self.x: images,
+                         self.y_: labels,
+                         self.keep_prob: 0.5}
+
             self.session.run(self.trainer,
-                             feed_dict={self.x: images,
-                                        self.y_: labels,
-                                        self.keep_prob: 0.5})
+                             feed_dict=feed_dict)
+
+            summary = self.session.run(merged, feed_dict=feed_dict)
+            train_writer.add_summary(summary, 1)
+
             i += 1
             items = self.repo.get_items(BATCH_SIZE, nonzero=True)
 
@@ -119,57 +120,70 @@ class FEMultiLabelCNN(FEExpresser):
 
     def _create_network(self):
 
-        layer1_conv_W = weight_variable([5,5,1,64], stddev=std_dev(self.image_size*self.image_size), name="layer1_W")
+        layer1_conv_W = weight_variable([5,5,1,64], name="layer1_W")
         layer1_conv_b = bias_variable([64], name="layer1_b")
         layer1_conv   = tf.nn.relu(conv2d(self.x, layer1_conv_W, name='layer1_conv') + layer1_conv_b, name='layer1_relu')
-        layer1_pool   = tf.nn.max_pool(layer1_conv, ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME', name='layer1_pool')
+        tf.histogram_summary('layer1_relu', layer1_conv)
+        layer1_pool   = max_pool_2x2(layer1_conv, name='layer1_pool')
         # layer1_drop   = tf.nn.dropout(layer1_pool, self.keep_prob, name='layer1_drop')
 
-        layer2_conv_W = weight_variable([5,5,64,128], stddev=std_dev(64), name='layer2_W')
+        layer2_conv_W = weight_variable([5,5,64,128], name='layer2_W')
         layer2_conv_b = bias_variable([128], name='layer2_b')
-        layer2_conv   = tf.nn.relu(conv2d(layer1_pool, layer2_conv_W) + layer2_conv_b, name='layer2_relu')
-        layer2_pool   = tf.nn.max_pool(layer2_conv, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='layer2_pool')
+        layer2_conv   = tf.nn.relu(conv2d(layer1_pool, layer2_conv_W, name='layer2_conv') + layer2_conv_b, name='layer2_relu')
+        tf.histogram_summary('layer2_relu', layer2_conv)
+        layer2_pool   = max_pool_2x2(layer2_conv, name='layer2_pool')
+
 
         image_size_8  = self.image_size / 8
-        layer3_conv_W = weight_variable([5,5,128,256], stddev=std_dev(128), name='layer2_W')
-        layer3_conv_b = bias_variable([256], name='layer2_b')
-        layer3_conv   = tf.nn.relu(conv2d(layer2_pool, layer3_conv_W) + layer3_conv_b, name='layer2_relu')
-        layer3_pool   = tf.nn.max_pool(layer3_conv, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='layer2_pool')
+        layer3_conv_W = weight_variable([5,5,128,256], name='layer3_W')
+        layer3_conv_b = bias_variable([256], name='layer3_b')
+        layer3_conv   = tf.nn.relu(conv2d(layer2_pool, layer3_conv_W, name='layer3_conv') + layer3_conv_b, name='layer3_relu')
+        tf.histogram_summary('layer3_relu', layer3_conv)
+        layer3_pool   = max_pool_2x2(layer3_conv, name='layer3_pool')
+
         # layer3_drop   = tf.nn.dropout(layer3_pool, self.keep_prob, name='layer3_drop')
 
-        layer3_flat = tf.reshape(layer3_pool, [-1, image_size_8 * image_size_8 * 256], name='layer2_pool_flat')
+        layer3_flat = tf.reshape(layer3_pool, [-1, image_size_8 * image_size_8 * 256], name='layer3_pool')
 
-        layer4_full_W = weight_variable(shape=[image_size_8 * image_size_8 * 256, 300], name='layer3_W')
-        layer4_full_b = bias_variable([300], name='layer3_b')
-        layer4_full   = tf.nn.relu(tf.matmul(layer3_flat, layer4_full_W, name='layer6_matmull') + layer4_full_b, name='layer4_full')
+        layer4_full_W = weight_variable(shape=[image_size_8 * image_size_8 * 256, 300], name='layer4_W')
+        layer4_full_b = bias_variable([300], name='layer4_b')
+        layer4_full   = tf.nn.relu(tf.matmul(layer3_flat, layer4_full_W, name='layer4_matmull') + layer4_full_b, name='layer4_full')
+        tf.histogram_summary('layer4_relu', layer4_full)
         layer4_drop   = tf.nn.dropout(layer4_full, self.keep_prob, name='layer4_drop')
 
-        layer5_sig_W = weight_variable(shape=[300, len(self.codes)], name='layer3_W')
-        layer5_sig_b = bias_variable([len(self.codes)], name='layer3_b')
-        layer5_sig   = tf.nn.sigmoid(tf.matmul(layer4_drop, layer5_sig_W) + layer5_sig_b)
+        layer5_relu_W = weight_variable(shape=[300, len(self.codes)], name='layer5_W')
+        layer5_relu_b = bias_variable([len(self.codes)], name='layer5_b')
+        layer5_relu   = tf.nn.relu(tf.matmul(layer4_drop, layer5_relu_W) + layer5_relu_b, name='layer5_relu')
+        tf.histogram_summary('layer5_relu', layer5_relu)
 
-        cost = tf.reduce_sum(tf.nn.sigmoid_cross_entropy_with_logits(layer5_sig, self.y_))
+        sigmoids = tf.nn.sigmoid_cross_entropy_with_logits(layer5_relu, self.y_)
+        cost = tf.reduce_mean(sigmoids)
+
+        tf.scalar_summary('cost/summary', cost)
         train_step = tf.train.AdamOptimizer(LEARNING_RATE).minimize(cost)
+
         init_ops = tf.initialize_all_variables()
 
-        return train_step, layer5_sig, init_ops
+        return train_step, layer5_relu, init_ops
 
     def _items_to_lists(self, items):
         images = []
         labels = []
 
         for fac in items:
-            images.append(fac.get_image())
             new_labels = []
             for code in self.codes:
-                if code in fac.get_labels():
+                if fac.has_au(code):
                     new_labels.append(1)
                 else:
                     new_labels.append(0)
 
-            labels.append(new_labels)
+            if len(list(set(new_labels))) > 1:
+                images.append(fac.get_image())
+                labels.append(new_labels)
 
         return images, labels
+
 
 def main():
     print("Test")

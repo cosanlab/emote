@@ -19,6 +19,8 @@ def main():
         image(sys.argv[2:])
     elif args.command == 'video':
         video(sys.argv[2:])
+    elif args.command == 'mirror':
+        mirror(sys.argv[2:])
     else:
         print_help()
         quit(1)
@@ -54,7 +56,21 @@ def video(options):
     cap = cv2.VideoCapture(args.input_file)
     _detect_faces_from_video(cap, detector, writer, args.image_size)
 
-def _detect_faces_from_video(cap, detector, writer, image_size):
+def mirror(options):
+    parser = argparse.ArgumentParser(description='Mirrors videos over the y-axis')
+    parser.add_argument('input_file', type=str, help='Video to be processed')
+    parser.add_argument('output_dir', type=str, help='Output directory')
+    parser.add_argument('image_size', type=int, help='Size of output image')
+  
+    args = parser.parse_args(options)
+
+    detector = FDHaarCascade()
+    writer = FrameWriter(args.output_dir, args.input_file)
+    cap = cv2.VideoCapture(args.input_file)
+    _detect_faces_from_video(cap, detector, writer, args.image_size, mirror=True)
+
+
+def _detect_faces_from_video(cap, detector, writer, image_size, mirror=False):
 
     while True:
         # Capture frame-by-frame
@@ -65,6 +81,10 @@ def _detect_faces_from_video(cap, detector, writer, image_size):
             if face is not None:
 
                 normalized_face = cv2.resize(face, (image_size, image_size), cv2.INTER_CUBIC)
+
+                if mirror:
+                    cv2.flip(normalized_face, normalized_face, 1)
+
                 writer.write(normalized_face)
         else:
             break
@@ -78,6 +98,7 @@ def print_help():
     print("Subcommands:")
     print("image        Source is an image file")
     print("video        Source is a video file")
+    print("mirror       Mirror the source video")
 
     print("Use the --help option on any subcommand for option")
     print("information relating to that command")

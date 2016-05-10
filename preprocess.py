@@ -65,7 +65,10 @@ def mirror(options):
     args = parser.parse_args(options)
 
     detector = FDHaarCascade()
-    writer = FrameWriter(args.output_dir, args.input_file)
+
+    basename = os.path.basename(args.input_file)
+    basename = 'Mirror' + basename
+    writer = FrameWriter(args.output_dir, os.path.dirname(args.input_file) + '/' + basename)
     cap = cv2.VideoCapture(args.input_file)
     _detect_faces_from_video(cap, detector, writer, args.image_size, mirror=True)
 
@@ -83,7 +86,7 @@ def _detect_faces_from_video(cap, detector, writer, image_size, mirror=False):
                 normalized_face = cv2.resize(face, (image_size, image_size), cv2.INTER_CUBIC)
 
                 if mirror:
-                    cv2.flip(normalized_face, normalized_face, 1)
+                    normalized_face = cv2.flip(normalized_face, 1)
 
                 writer.write(normalized_face)
         else:

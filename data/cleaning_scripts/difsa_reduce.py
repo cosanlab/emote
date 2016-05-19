@@ -11,10 +11,10 @@ def main():
 
     csvs = sorted(os.listdir(csv_dir))
 
-    for csv in csvs:
-        csv_file = open(csv, 'r')
+    for subj in csvs:
+        file_path = csv_dir + '/' + subj
+        csv_file = open(file_path, 'r')
         reader = csv.reader(csv_file, delimiter=',')
-        subj = os.path.split(csv)
 
         for row in reader:
             frame = row[0]
@@ -29,7 +29,7 @@ def copy_frame_data(frame, data, subj, image_dir, output_dir):
     dest_image_path = "%s/Images/%s/%s_%d"%(output_dir, subj, subj, frame)
     new_csv_path =    "%s/AUs/%s"
 
-    new_csv = open(new_csv_path 'a+')
+    new_csv = open(new_csv_path, 'a+')
     row = ", ".join(data) + "\n"
     new_csv.write(row)
     copyfile(src_image_path, dest_image_path)

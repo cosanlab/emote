@@ -1,6 +1,6 @@
 #File that doesn't have tensorflow dependency
 import cv2
-import sys
+import sys, os
 import argparse
 from gui.video import FrameWriter
 from face_detect.FDHaarCascade import FDHaarCascade

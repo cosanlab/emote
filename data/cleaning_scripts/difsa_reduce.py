@@ -25,9 +25,9 @@ def main():
 
 
 def copy_frame_data(frame, data, subj, image_dir, output_dir):
-    src_image_path = "%s/%s/%s_%d"%(image_dir, subj, subj, frame)
-    dest_image_path = "%s/Images/%s/%s_%d"%(output_dir, subj, subj, frame)
-    new_csv_path =    "%s/AUs/%s"
+    src_image_path = "%s/%s/%s_%s"%(image_dir, subj, subj, frame)
+    dest_image_path = "%s/Images/%s/%s_%s"%(output_dir, subj, subj, frame)
+    new_csv_path =    "%s/AUs/%s"%(output_dir, subj)
 
     new_csv = open(new_csv_path, 'a+')
     row = ", ".join(data) + "\n"

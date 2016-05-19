@@ -32,6 +32,10 @@ def copy_frame_data(frame, data, subj, image_dir, output_dir):
     new_csv = open(new_csv_path, 'a+')
     row = ", ".join(data) + "\n"
     new_csv.write(row)
+
+    if not os.path.exists(os.path.dirname(dest_image_path)):
+        os.makedirs(os.path.dirname(dest_image_path))
+
     copyfile(src_image_path, dest_image_path)
 
     new_csv.close()

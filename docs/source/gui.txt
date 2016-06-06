@@ -1,0 +1,21 @@
+gui Package
+===========
+
+:mod:`image` Module
+-------------------
+
+.. automodule:: gui.image
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :special-members:
+
+:mod:`video` Module
+-------------------
+
+.. automodule:: gui.video
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :special-members:
+

@@ -1,0 +1,57 @@
+face_express Package
+====================
+
+:mod:`face_express` Package
+---------------------------
+
+.. automodule:: face_express
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :special-members:
+
+:mod:`FEAggregatedCNN` Module
+-----------------------------
+
+.. automodule:: face_express.FEAggregatedCNN
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :special-members:
+
+:mod:`FEExpresser` Module
+-------------------------
+
+.. automodule:: face_express.FEExpresser
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :special-members:
+
+:mod:`FEMultiLabelCNN` Module
+-----------------------------
+
+.. automodule:: face_express.FEMultiLabelCNN
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :special-members:
+
+:mod:`FESingleAUCNN` Module
+---------------------------
+
+.. automodule:: face_express.FESingleAUCNN
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :special-members:
+
+:mod:`models` Module
+--------------------
+
+.. automodule:: face_express.models
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :special-members:
+

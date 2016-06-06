@@ -1,0 +1,11 @@
+emote Module
+============
+
+:mod:`emote` Module
+-------------------
+
+.. automodule:: emote
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :special-members:

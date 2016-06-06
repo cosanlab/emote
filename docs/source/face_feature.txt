@@ -1,0 +1,21 @@
+face_feature Package
+====================
+
+:mod:`LandmarkDetector` Module
+------------------------------
+
+.. automodule:: face_feature.LandmarkDetector
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :special-members:
+
+:mod:`RegionFinder` Module
+--------------------------
+
+.. automodule:: face_feature.RegionFinder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :special-members:
+

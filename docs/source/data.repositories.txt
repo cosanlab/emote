@@ -1,0 +1,39 @@
+repositories Package
+====================
+
+:mod:`repositories` Package
+---------------------------
+
+.. automodule:: data.repositories
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :special-members:
+
+:mod:`FACRepository` Module
+---------------------------
+
+.. automodule:: data.repositories.FACRepository
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :special-members:
+
+:mod:`ck` Module
+----------------
+
+.. automodule:: data.repositories.ck
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :special-members:
+
+:mod:`difsa` Module
+-------------------
+
+.. automodule:: data.repositories.difsa
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :special-members:
+

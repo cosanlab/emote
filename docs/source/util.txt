@@ -1,0 +1,44 @@
+util Package
+============
+
+:mod:`config` Module
+--------------------
+
+.. automodule:: util.config
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :special-members:
+
+:mod:`constants` Module
+-----------------------
+See util/constants.py for constants used throughout the package
+
+
+:mod:`logger` Module
+--------------------
+
+.. automodule:: util.logger
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :special-members:
+
+:mod:`paths` Module
+-------------------
+
+.. automodule:: util.paths
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :special-members:
+
+:mod:`tf_util` Module
+---------------------
+
+.. automodule:: util.tf_util
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :special-members:
+

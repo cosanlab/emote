@@ -1,0 +1,28 @@
+data Package
+============
+
+:mod:`data` Package
+-------------------
+
+.. automodule:: data
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :special-members:
+
+:mod:`FAC` Module
+-----------------
+
+.. automodule:: data.FAC
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :special-members:
+
+Subpackages
+-----------
+
+.. toctree::
+
+    data.repositories
+

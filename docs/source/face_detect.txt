@@ -1,0 +1,30 @@
+face_detect Package
+===================
+
+:mod:`face_detect` Package
+--------------------------
+
+.. automodule:: face_detect
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :special-members:
+
+:mod:`FDDetector` Module
+------------------------
+
+.. automodule:: face_detect.FDDetector
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :special-members:
+
+:mod:`FDHaarCascade` Module
+---------------------------
+
+.. automodule:: face_detect.FDHaarCascade
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :special-members:
+

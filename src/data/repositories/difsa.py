@@ -62,7 +62,7 @@ class DIFSARepository(FACRepository):
                 image = image.reshape(len(image), len(image), 1)
 
                 #Create the FACDatum
-                frame = int(filename[6:])
+                frame = int(filename.split('_')[2][:-4])
                 datum = FACDatum(image, labels[frame-1], subj + str(frame))
                 
                 #Divide into training and testing

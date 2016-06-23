@@ -4,7 +4,7 @@ import cv2
 import sys, os
 import argparse
 from gui.video import FrameWriter
-from face_detect.FDHaarCascade import FDHaarCascade
+from face_detect import FDHaarCascade
 
 def main():
 
@@ -84,7 +84,7 @@ def _detect_faces_from_video(cap, detector, writer, image_size, mirror=False):
             new_frame, face = detector.find(frame)
             if face is not None:
 
-                normalized_ face = cv2.resize(face, (image_size, image_size), cv2.INTER_CUBIC)
+                normalized_face = cv2.resize(face, (image_size, image_size), cv2.INTER_CUBIC)
 
                 if mirror:
                     normalized_face = cv2.flip(normalized_face, 1)

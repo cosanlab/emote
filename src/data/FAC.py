@@ -89,5 +89,5 @@ class FACLabel:
         :param intensity: Possible intensity. -1 if not specified
         :type intensity: float or int preferably
         """
-        self.fac = fac
+        self.fac = au
         self.intensity = intensity

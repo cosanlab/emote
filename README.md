@@ -5,6 +5,21 @@ This is source for a FACS recognition system.
 Emote is a toolkit for image processing, facial detection, and facial action code recognition. All the code written to preprocess data sets is included in reuseable modules.
 
 ##Setup
+###Docker
+The suggested method of working with emote is using the docker image which automatically set ups all the necessary dependencies on top of a ubuntu image. 
+
+To build the docker image, first download and setup docker on your machine then run the following from the root of the project folder:
+
+	$ docker build . -t emote
+
+This will create a docker image called `emote` on your host machine. It will probably take about 20-30 minutes as it downloads and compiles multiple packages
+
+To start the image, run the following on the host machine:
+
+	$ docker run -it -v <path/to/emote/folder>:/emote emote bash
+
+Where `<path/to/emote/folder>` is replaced with the absolute path to the top-level emote directory. This will mount the emote code at `/emote` within the docker container.
+
 ###Dependencies
 The precompiled dependencies for nikola.dartmouth.edu are available on discovery at /idata/lchang/Resources/emote-deps. The README in that folder gives some more instructions on how to use the dependencies.
 

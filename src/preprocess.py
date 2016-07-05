@@ -1,10 +1,12 @@
 #Preprocess data sets to without the tensorflow dependency on Discovery.
-
 import cv2
 import sys, os
 import argparse
 from gui.video import FrameWriter
-from face_detect import FDHaarCascade
+from util import paths
+from face_process import detect_and_align_face
+
+
 
 def main():
 
@@ -32,14 +34,14 @@ def image(options):
     parser.add_argument('input_file', type=str, help='Image to be processed')
     parser.add_argument('output_file', type=str, help='Output file')
     parser.add_argument('image_size', type=int, help='Output image size')
+    parser.add_argument('-g, --grayscale', dest=isGrayscale help='Output image in grayscale (default if False)')
+    parser.set_defaults(isGrayscale=False)
 
     args = parser.parse_args(options)
 
     path = args.input_file
     pic = cv2.imread(path)
-    detector = FDHaarCascade()
-    frame, face = detector.find(pic, grayscale=True)
-    face = cv2.resize(face, (args.image_size, args.image_size), cv2.INTER_CUBIC)
+    face = detect_and_align_face(pic, args.image_size, args.isGrayscale)
 
     cv2.imwrite(args.output_file, face)
     print("Finshed ")
@@ -49,6 +51,8 @@ def video(options):
     parser.add_argument('input_file', type=str, help='Image to be processed')
     parser.add_argument('output_dir', type=str, help='Output directory')
     parser.add_argument('image_size', type=int, help='Size of output image')
+    parser.add_argument('-g, --grayscale', dest=isGrayscale help='Output image in grayscale (default if False)')
+    parser.set_defaults(isGrayscale=False)
 
     args = parser.parse_args(options)
 
@@ -62,7 +66,9 @@ def mirror(options):
     parser.add_argument('input_file', type=str, help='Video to be processed')
     parser.add_argument('output_dir', type=str, help='Output directory')
     parser.add_argument('image_size', type=int, help='Size of output image')
-  
+    parser.add_argument('-g, --grayscale', dest=isGrayscale help='Output image in grayscale (default if False)')
+    parser.set_defaults(isGrayscale=False)
+
     args = parser.parse_args(options)
 
     detector = FDHaarCascade()
@@ -74,27 +80,24 @@ def mirror(options):
     _detect_faces_from_video(cap, detector, writer, args.image_size, mirror=True)
 
 
-def _detect_faces_from_video(cap, detector, writer, image_size, mirror=False):
+def _detect_faces_from_video(cap, image_size, mirror=False):
 
     while True:
         # Capture frame-by-frame
         ret, frame = cap.read()
 
         if ret:
-            new_frame, face = detector.find(frame)
-            if face is not None:
-
-                normalized_face = cv2.resize(face, (image_size, image_size), cv2.INTER_CUBIC)
-
+            
+            if alignedFace is not None:
                 if mirror:
-                    normalized_face = cv2.flip(normalized_face, 1)
-
-                writer.write(normalized_face)
+                    alignedFace = cv2.flip(normalized_face, 1)
+                writer.write(alignedFace)
         else:
             break
 
     # When everything done, release the capture
     cap.release()
+
 
 def print_help():
     print("preprocess [--help] <command>")

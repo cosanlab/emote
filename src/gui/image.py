@@ -1,12 +1,11 @@
 import os
 import cv2
 from util.constants import FRAME_WIDTH, FRAME_HEIGHT
+from face_process import detect_and_align_face
 
-def process_image(detector, expresser, path, out_file=None):
+def process_image(expresser, path, grayscale=False):
     """ Uses a detector model, expresser model, and prints the results of the expresser model for the given image path
 
-    :param detector: Model for detecting a face
-    :type detector: FDDetector
     :param expresser: Model for recognizing expressions
     :type expresser: FEExpresser
     :param path: Path to image to be processed
@@ -22,27 +21,15 @@ def process_image(detector, expresser, path, out_file=None):
     image = cv2.imread(path, cv2.IMREAD_COLOR)
 
     #Find the face in the provided image
-    new_frame, face = detector.find(image)
+    face = detect_and_align_face(image, expresser.get_image_size(), grayscale)
 
     #If it doesn't exist, exit
     if face is not None:
-        #Scale to model's desired size
-        normalized_face = cv2.resize(face, (expresser.get_image_size(), expresser.get_image_size()), cv2.INTER_CUBIC)
-
         #Run recognition on normalized face
-        data = expresser.predict(normalized_face)
+        data = expresser.predict(face)
         print(data)
+        write_image_to_file(face, out_file)
 
-        if out_file: #If out_file is provided, write normalized face to file
-            write_image_to_file(normalized_face, out_file)
-        else:
-            while True:
-                cv2.imshow('image', new_frame)
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
-
-
-    cv2.destroyAllWindows()
 
 def write_image_to_file(img, path):
     """ Writes image representation to some path

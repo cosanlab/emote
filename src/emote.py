@@ -8,7 +8,6 @@ from util.logger import setupLogging
 from util import config
 from util import constants as ks
 from face_express import models
-from face_detect.FDHaarCascade import FDHaarCascade
 from face_express.FEAggregatedCNN import FEAggregatedCNN
 
 def main():
@@ -56,10 +55,8 @@ def live(argv):
 
     args = parser.parse_args(argv)
 
-    detector = get_detector(args.detector)
     expresser = get_expresser(args.expresser)
-
-    vid.process_from_capture(detector, expresser, out_file=args.out_file)
+    vid.process_from_capture(expresser, out_file=args.out_file)
 
 def image(argv):
     """Subcommand handler for single image processing
@@ -71,10 +68,8 @@ def image(argv):
 
     args = parser.parse_args(argv)
 
-    detector = get_detector()
     expresser = get_expresser()
-
-    img.process_image(detector, expresser, args.path, args.out_file)
+    img.process_image(expresser, args.path, args.out_file)
 
 def video(argv):
     """Subcommand handler for video file processing
@@ -92,13 +87,11 @@ def video(argv):
 
     args = parser.parse_args(argv)
 
-    detector = get_detector()
     expresser = get_expresser()
-
     if args.out_directory:
-        vid.process_video_into_frames(detector, expresser, args.path,args.out_directory, args.frame_rate)
-
-    vid.process_from_file(detector, expresser, args.path, args.frame_rate, args.out_file)
+        vid.process_video_into_frames(expresser, args.path, args.out_directory, args.frame_rate)
+    else:
+        vid.process_from_file(expresser, args.path, args.frame_rate, args.out_file)
 
 def print_help():
     print("emote [--help] <command>")
@@ -149,22 +142,6 @@ def get_expresser():
         quit()
 
     return express_method
-
-def get_detector():
-    """ Gets detection recognition model specified in the config file
-
-    :returns: FDDetector - Facial detection model
-    """
-
-    detector_name = config.get_detector_name()
-    detect_method = None
-    if detector_name == ks.kHaar:
-        detect_method = FDHaarCascade()
-    else:
-        print_help()
-        quit()
-
-    return detect_method
 
 if __name__ == "__main__":
     main()

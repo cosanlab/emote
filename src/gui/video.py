@@ -3,11 +3,9 @@ import cv2
 import os.path
 from util.constants import FRAME_WIDTH, FRAME_HEIGHT
 
-def process_from_file(detector, expresser, filename, rate=30, out_file=None):
+def process_from_file(expresser, filename, rate=30, outfile=None):
     """Processes frames of a video files. Detects faces and recognizes expressions by frame and outputs expression results
     
-    :param detector: Detection model to find face in video
-    :type detector: face_detect.FDDetector
     :param expresser: Model to recognize facial expressions
     :type expresser: face_express.FEExpresser
     :param filename: Path to video file
@@ -36,15 +34,13 @@ def process_from_file(detector, expresser, filename, rate=30, out_file=None):
         writer = _create_video_writer_for_file(out_file, framerate=rate)
 
     #Send all setup objects to processing loop
-    _process_from_video_obj(cap, detector, expresser, writer)
+    _process_from_video_obj(cap, expresser, writer)
 
     return True
 
-def process_from_capture(detector, expresser, camera=0, out_file=None):
+def process_from_capture(expresser, camera=0, out_file=None):
     """ Process frames from live video. This probably only works on a machine with a GUI. Depends on how OpenCV was built
     
-    :param detector: Detection model to find face in video
-    :type detector: face_detect.FDDetector
     :param expresser: Model to recognize facial expressions
     :type expresser: face_express.FEExpresser
     :param camera: ID for camera, default is usally 0
@@ -65,12 +61,12 @@ def process_from_capture(detector, expresser, camera=0, out_file=None):
         writer = _create_video_writer_for_file(out_file)
 
     #Pass everything to main processing loop
-    _process_from_video_obj(cap, detector, expresser, writer, show_window=True)
+    _process_from_video_obj(cap, expresser, writer)
 
     return True
 
 
-def process_video_into_frames(detector, expresser, filename, out_dir, rate=30):
+def process_video_into_frames(expresser, filename, out_dir, rate=30):
     """Processes frames of a video files. Detects faces and recognizes expressions by frame and outputs expression results. This will save individual frames as images. Can be used to processed dataset videos into individual frame images
     
     :param detector: Detection model to find face in video
@@ -101,17 +97,15 @@ def process_video_into_frames(detector, expresser, filename, out_dir, rate=30):
 
     writer = FrameWriter(out_dir, filename)
 
-    _process_from_video_obj(cap, detector, expresser, writer)
+    _process_from_video_obj(cap, expresser, writer)
 
     return True
 
-def _process_from_video_obj(capture, detector, expresser, writer=None, show_window=False):
-    """ Primary video processing loop to read from either file or live (OpenCV handles them with the same object), detect the face with the provided detector, and run expression recognition (with expresser), will with writer object as well
+def _process_from_video_obj(capture, expresser, writer=None):
+    """ Primary video processing loop to read from either file or live (OpenCV handles them with the same object), detect the face, and run expression recognition (with expresser), will with writer object as well
 
     :param capture: OpenCV VideoCapture object loaded with video stream to read
     :type capture: VideoCapture
-    :param detector: Detection model to find face in video
-    :type detector: face_detect.FDDetector
     :param expresser: Model to recognize facial expressions
     :type expresser: face_express.FEExpresser
     :param writer: Object with an .write() function. Abstraction to write however calling function may want
@@ -124,27 +118,17 @@ def _process_from_video_obj(capture, detector, expresser, writer=None, show_wind
         ret, frame = capture.read()
 
         if ret:
-            new_frame, face = detector.find(frame)
+            face = detect_and_align_face(frame)
             if face is not None:
-
-                normalized_face = cv2.resize(face, (expresser.get_image_size(), expresser.get_image_size()), cv2.INTER_CUBIC)
                 data = expresser.predict(normalized_face)
-                print data
-
+                print(data)
                 if writer is not None:
                     writer.write(normalized_face)
-
-            if show_window:
-                # Display the resulting frame
-                cv2.imshow('frame', new_frame)
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
         else:
             break
 
     # When everything done, release the capture
     capture.release()
-    cv2.destroyAllWindows()
 
 def _create_video_writer_for_file(path, framerate=30):
     """Creates preconfigured OpenCV writer object which writes frames to a video file
@@ -187,7 +171,7 @@ class FrameWriter:
         :param image: Image representation
         :type image: OpenCV Mat
         """
-        out_file = os.path.normpath(self.out_dir + '/' + str(self.frame_count))
+        out_file = os.path.normpath(os.path.join(self.out_dir,str(self.frame_count)))
         print("Writing to " + out_file)
         cv2.imwrite(out_file, image)
         self.frame_count += 1

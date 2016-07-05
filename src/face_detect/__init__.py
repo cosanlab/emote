@@ -1,2 +1,0 @@
-from FDDetector import FDDetector
-from FDHaarCascade import FDHaarCascade

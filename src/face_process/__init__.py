@@ -1,0 +1,1 @@
+from face_process import detect_and_align_face

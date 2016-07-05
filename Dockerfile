@@ -55,6 +55,13 @@ RUN mkdir $DLIB_DIR
 RUN curl -sL https://github.com/davisking/dlib/archive/master.tar.gz | tar xvz -C $DLIB_DIR
 RUN python $DLIB_DIR/dlib-master/setup.py install
 
+
+#### Install OpenFace
+WORKDIR /tmp
+RUN git clone https://github.com/cmusatyalab/openface.git
+WORKDIR /tmp/openface
+RUN python setup.py install
+
 # Setup python deps
 RUN apt-get -y install python-pip 
 RUN pip install pillow

@@ -15,9 +15,10 @@ out = None
 files = os.listdir(source_dir)
 total = len(files)
 
-for i, img_path in enumerate(files):
+for i, img_name in enumerate(files):
+    img_path = os.path.join(source_dir, img_name)
     img = Image.open(img_path)
-    if out = None:
+    if out == None:
         out = img
         continue
 

@@ -34,14 +34,13 @@ def image(options):
     parser.add_argument('input_file', type=str, help='Image to be processed')
     parser.add_argument('output_file', type=str, help='Output file')
     parser.add_argument('image_size', type=int, help='Output image size')
-    parser.add_argument('-g, --grayscale', dest=isGrayscale help='Output image in grayscale (default if False)')
-    parser.set_defaults(isGrayscale=False)
+    parser.add_argument('-g', action='store_true', default=False, help='Output image in grayscale (default if False)')
 
     args = parser.parse_args(options)
 
     path = args.input_file
     pic = cv2.imread(path)
-    face = detect_and_align_face(pic, args.image_size, args.isGrayscale)
+    face = detect_and_align_face(pic, args.image_size, args.g)
 
     cv2.imwrite(args.output_file, face)
     print("Finshed ")
@@ -51,43 +50,38 @@ def video(options):
     parser.add_argument('input_file', type=str, help='Image to be processed')
     parser.add_argument('output_dir', type=str, help='Output directory')
     parser.add_argument('image_size', type=int, help='Size of output image')
-    parser.add_argument('-g, --grayscale', dest=isGrayscale help='Output image in grayscale (default if False)')
-    parser.set_defaults(isGrayscale=False)
+    parser.add_argument('-g', action='store_true', default=False, help='Output image in grayscale (default if False)')
 
     args = parser.parse_args(options)
 
-    detector = FDHaarCascade()
     writer = FrameWriter(args.output_dir, args.input_file)
     cap = cv2.VideoCapture(args.input_file)
-    _detect_faces_from_video(cap, detector, writer, args.image_size)
+    _detect_faces_from_video(cap, writer, args.image_size, grayscale=args.g)
 
 def mirror(options):
     parser = argparse.ArgumentParser(description='Mirrors videos over the y-axis')
     parser.add_argument('input_file', type=str, help='Video to be processed')
     parser.add_argument('output_dir', type=str, help='Output directory')
     parser.add_argument('image_size', type=int, help='Size of output image')
-    parser.add_argument('-g, --grayscale', dest=isGrayscale help='Output image in grayscale (default if False)')
-    parser.set_defaults(isGrayscale=False)
+    parser.add_argument('-g', action='store_true', default=False, help='Output image in grayscale (default if False)')
 
     args = parser.parse_args(options)
-
-    detector = FDHaarCascade()
 
     basename = os.path.basename(args.input_file)
     basename = 'Mirror' + basename
     writer = FrameWriter(args.output_dir, os.path.dirname(args.input_file) + '/' + basename)
     cap = cv2.VideoCapture(args.input_file)
-    _detect_faces_from_video(cap, detector, writer, args.image_size, mirror=True)
+    _detect_faces_from_video(cap, writer, args.image_size, mirror=True, grayscale=args.g)
 
 
-def _detect_faces_from_video(cap, image_size, mirror=False):
+def _detect_faces_from_video(cap, writer, image_size, mirror=False, grayscale=False):
 
     while True:
         # Capture frame-by-frame
         ret, frame = cap.read()
 
         if ret:
-            
+            alignedFace = detect_and_align_face(frame, image_size, grayscale=grayscale)
             if alignedFace is not None:
                 if mirror:
                     alignedFace = cv2.flip(normalized_face, 1)

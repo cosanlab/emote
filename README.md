@@ -10,7 +10,15 @@ The suggested method of working with emote is using the docker image which autom
 
 To build the docker image, first download and setup docker on your machine then run the following from the root of the project folder:
 
-	$ docker build . -t emote
+MacOS:
+
+    $ docker build . -t emote
+
+Ubunutu/Linux:
+    
+    $ docker build -t emote .
+
+You might need to have root privledges to run the build. Depends on the platform.
 
 This will create a docker image called `emote` on your host machine. It will probably take about 20-30 minutes as it downloads and compiles multiple packages
 

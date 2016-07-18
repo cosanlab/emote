@@ -8,6 +8,7 @@ if sys.argv[1] == '--help':
     print("source directory: Directory of images to be averaged")
     print("output filename: Path for averaged image")
     print("--------------------------------------------------------------")
+    quit()
 
 source_dir = sys.argv[1]
 output_file = sys.argv[2]

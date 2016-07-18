@@ -5,6 +5,13 @@ import csv
 
 def main():
 
+    if sys.argv[1] == '--help':
+        print("difsa_reduce.py")
+        print("Removes training examples which don't have any present AUs")
+        print("Usage: ")
+        print("python difsa_reduce.py [CSV DIR] [IMAGE_DIR] [REDUCED DIR]")
+        quit()
+
     csv_dir = sys.argv[1]
     image_dir = sys.argv[2]
     output_dir = sys.argv[3]
@@ -12,7 +19,7 @@ def main():
     csvs = sorted(os.listdir(csv_dir))
 
     for subj in csvs:
-        file_path = csv_dir + '/' + subj
+        file_path = os.path.join(csv_dir, subj)
         csv_file = open(file_path, 'r')
         reader = csv.reader(csv_file, delimiter=',')
 
@@ -25,8 +32,8 @@ def main():
 
 
 def copy_frame_data(frame, data, subj, image_dir, output_dir):
-    src_image_path = "%s/%s/%s_%s.png"%(image_dir, subj, subj, frame)
-    dest_image_path = "%s/Images/%s/%s_%s"%(output_dir, subj, subj, frame)
+    src_image_path =  "%s/%s/%s.png"%(image_dir, subj, frame)
+    dest_image_path = "%s/Images/%s/%s.png"%(output_dir, subj, frame)
     new_csv_path =    "%s/AUs/%s"%(output_dir, subj)
 
     try:

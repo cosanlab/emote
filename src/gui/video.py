@@ -171,7 +171,6 @@ class FrameWriter:
         :param image: Image representation
         :type image: OpenCV Mat
         """
-        out_file = os.path.normpath(os.path.join(self.out_dir,str(self.frame_count)) + '.png')
-        print("Writing to " + out_file)
+        out_file = os.path.normpath(os.path.join(self.out_dir, str(self.frame_count)) + '.png')
         cv2.imwrite(out_file, image)
         self.frame_count += 1

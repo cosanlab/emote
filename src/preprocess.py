@@ -84,7 +84,7 @@ def _detect_faces_from_video(cap, writer, image_size, mirror=False, grayscale=Fa
             alignedFace = detect_and_align_face(frame, image_size, grayscale=grayscale)
             if alignedFace is not None:
                 if mirror:
-                    alignedFace = cv2.flip(normalized_face, 1)
+                    alignedFace = cv2.flip(alignedFace, 1)
                 writer.write(alignedFace)
         else:
             break

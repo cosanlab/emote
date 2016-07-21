@@ -7,7 +7,7 @@ FRAME_HEIGHT = 96
 kHaar = 'haar'
 
 #----------Expression Model Names----------
-kNottinghamCNN = 'nottingham'
+kGhoshCNN = 'ghosh'
 kBasicCNN = 'basic_cnn'
 kAggregatedCNN = 'aggregated_cnn'
 kMultiLabelCNN = 'multilabel_cnn'

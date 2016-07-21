@@ -14,11 +14,10 @@ IMAGE_SIZE = 96
 TRAINING_DIR = 'training'
 TESTING_DIR = 'testing'
 VALIDATION_DIR = 'validation'
+SHUFFLE = True
 
 class DIFSARepository(FACRepository):
     """Repository to manage loading the DIFSA dataset
-
-    Internally organized by AU in order to return data points that only contain specific AUs
     """
 
     def __init__(self):
@@ -36,9 +35,9 @@ class DIFSARepository(FACRepository):
         self.testing_size = len(testing_files)
         self.validation_size = len(validation_files)
 
-        self.training_queue = tf.train.string_input_producer(training_files, shuffle=True)
-        self.testing_queue = tf.train.string_input_producer(testing_files, shuffle=True)
-        self.validation_queue = tf.train.string_input_producer(validation_files, shuffle=True)
+        self.training_queue = tf.train.string_input_producer(training_files, num_epochs=EPOCHS, shuffle=SHUFFLE)
+        self.testing_queue = tf.train.string_input_producer(testing_files, shuffle=SHUFFLE)
+        self.validation_queue = tf.train.string_input_producer(validation_files, shuffle=SHUFFLE)
 
         FACRepository.__init__(self, BUFFER_SIZE)
 
@@ -52,21 +51,23 @@ class DIFSARepository(FACRepository):
         labels = []
 
         for i in range(batch_size):
-            feature = tf.parse_example(serialized_examples[i], features={
-                'label': tf.FixedLenFeature([], tf.int64),
+            features = tf.parse_single_example(serialized_example, features={
+                'label': tf.FixedLenFeature([1, 12], tf.int64),
                 'image': tf.FixedLenFeature([], tf.string)
             })
 
             image = tf.decode_raw(features['image'], tf.uint8)
-            image.set_shape([IMAGE_SIZE])
+            image = tf.reshape(image, [96, 96, 1])
+            image = tf.cast(image, tf.float32) * (1. / 255) - 0.5
+            label = features['label']
 
-            features.append(feature['image'])
-            labels.append(feature['label'])
+            features.append(image)
+            labels.append(label)
 
         return features, labels
 
 
-    def get_training_batch(self, batch_size=None, ):
+    def get_training_batch(self, batch_size=None):
         """Get next batch of training examples
 
         :param batch_size: (int) size of the batch to be returned

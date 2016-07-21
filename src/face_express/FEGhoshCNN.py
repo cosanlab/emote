@@ -8,10 +8,11 @@ from util.tf_util import weight_variable, bias_variable, conv2d, max_pool_2x2
 KERNEL_SIZE=5
 LEARNING_RATE=0.01
 WEIGHT_STD = 0.3
+EPOCHS = 500
 
 FULL_SIZE_1 = 500
 FULL_SIZE_2 = 100
-FULL_SIZE_3 = 10
+FULL_SIZE_3 = 12
 
 
 class FEGhoshCNN(FEExpresser):
@@ -49,12 +50,34 @@ class FEGhoshCNN(FEExpresser):
         self.session = tf.Session()
         self.session.run(self.ops)
 
-    def train(self):
-        '''Trains the expression recognition model
-            Must be overriden by any extendng class
+        #If the model has already been trained, load it again
+        if os.path.isfile(paths.get_saved_model_path(MODEL_NAME)):
+            logging.info("Found saved model, restoring variables....")
+            self.saver.restore(self.session, paths.get_saved_model_path(MODEL_NAME))
+            self.isTrained = True
 
-            :raises: NotImplementedError
-        '''
+    def train(self, save=True):
+        logging.info("Beginning training session for MultiLabelCNN")
+
+        items = self.repo.get_training_batch(BATCH_SIZE)
+        i = 0
+
+        #Do training
+            
+        while len(items) > 0:
+             #Do training
+            feed_dict = {self.x: images,
+                         self.y_: labels,
+                         self.keep_prob: 0.5}
+            self.session.run(self.trainer,
+                             feed_dict=feed_dict)
+
+        if save:
+            self.saver.save(self.session, paths.get_saved_model_path(MODEL_NAME))
+
+        #train_classifier(self)
+
+    def train_classifier(self):
         raise NotImplementedError
 
     def predict(self, face):
@@ -116,7 +139,7 @@ class FEGhoshCNN(FEExpresser):
 
     def _multilabel_error(self, label, output):
         p_hat = tf.exp(output) / tf.sum(tf.exp(output))
-        return -tf.reduce_mean(tf.sum(label) * tf.log(p_hat))
+        return -tf.reduce_mean(tf.sum(label * tf.log(p_hat)))
 
 
     def get_image_size(self):

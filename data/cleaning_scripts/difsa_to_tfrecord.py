@@ -6,6 +6,7 @@ import csv
 import tensorflow as tf
 import numpy as np
 from PIL import Image
+import cv2
 
 
 FAC_DATA = 'fac_data'
@@ -22,14 +23,14 @@ TESTING_DIR = 'testing'
 VALIDATION_DIR = 'validation'
 
 def _int64_feature(value):
-  return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
+    return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
 
 
 def _bytes_feature(value):
-  return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
+    return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
-def _au_feature(aus):
-    return tf.train.Feature()
+def _float_feature(value):
+    return tf.train.Feature(bytes_list=tf.train.FloatList(value=value))
 
 def write_records(root_dir, dest_dir):
 
@@ -56,10 +57,9 @@ def write_records(root_dir, dest_dir):
             print("Processing %s" % filename)
             #Load the image
             file_path = os.path.join(subj_image_dir, filename)
-            frame = int(filename.split('_')[2])
+            frame = int(filename.split('_')[2][:-4])
 
-            img = Image.open(file_path).convert('LA')
-            raw_image = np.array(img).tostring()
+            image = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
 
             location = TRAINING_DIR
             rand = random.random() * 100
@@ -74,7 +74,7 @@ def write_records(root_dir, dest_dir):
             writer = tf.python_io.TFRecordWriter(record_path)
             example = tf.train.Example(features=tf.train.Features(feature={
                 'label': _int64_feature(labels[i]),
-                'image': _bytes_feature(raw_image)
+                'image': _bytes_feature(image.tostring())
                 }))
             writer.write(example.SerializeToString())
             writer.close()

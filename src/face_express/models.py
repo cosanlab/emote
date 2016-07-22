@@ -2,7 +2,7 @@ import util.constants as ks
 from util import config
 import face_express.FEAggregatedCNN
 import face_express.FEMultiLabelCNN
-import face_express.FEGhoshCNN
+from face_express import FEGhoshCNN
 from data.repositories import CKRepository, DIFSARepository
 
 def modelForTraining():
@@ -31,7 +31,7 @@ def modelForTraining():
         model = FEAggregatedCNN(model_info[ks.kDataImageSize], fac_info[ks.kModelFACsCodesKey], repo)
     elif model_name == ks.kMultiLabelCNN:
         model = FEMultiLabelCNN(model_info[ks.kDataImageSize], fac_info[ks.kModelFACsCodesKey], repo)
-    elif model_name == ks.GhoshCNN:
+    elif model_name == ks.kGhoshCNN:
         model = FEGhoshCNN(model_info[ks.kDataImageSize], fac_info[ks.kModelFACsCodesKey], repo)
     else:
         raise RuntimeError("Unable to find a model corresponding to " + model_name)

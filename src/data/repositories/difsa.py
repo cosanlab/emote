@@ -16,6 +16,7 @@ TESTING_DIR = 'testing'
 VALIDATION_DIR = 'validation'
 SHUFFLE = True
 
+
 class DIFSARepository(FACRepository):
     """Repository to manage loading the DIFSA dataset
     """

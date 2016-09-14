@@ -61,9 +61,7 @@ class FEMultiLabelCNN(FEExpresser):
         """
         if self.isTrained:
             face4d = face.reshape([1, self.image_size, self.image_size, 1])
-            prediction = self.session.run(self.output, feed_dict={self.x:face4d,
-                                                                  self.keep_prob:1.0})
-            logging.info("Predicted: " + str(prediction))
+            prediction = self.session.run(self.output, feed_dict={self.x:face4d, self.keep_prob:1.0})logging.info("Predicted: " + str(prediction))
             return prediction
 
         return None
@@ -146,7 +144,7 @@ class FEMultiLabelCNN(FEExpresser):
         self.isTrained = True
         logging.info("Training complete")
         #Uncomment below to save model for later!
-        #self.saver.save(self.session, paths.get_saved_model_path(MODEL_NAME))
+        #
 
 
     def _create_network(self):

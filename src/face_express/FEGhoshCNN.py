@@ -2,13 +2,15 @@ import os
 import logging
 import tensorflow as tf
 
+from util import paths
 from FEExpresser import FEExpresser
 from util.tf_util import weight_variable, bias_variable, conv2d, max_pool_2x2
 
 KERNEL_SIZE=5
 LEARNING_RATE=0.01
 WEIGHT_STD = 0.3
-EPOCHS = 500
+MODEL_NAME = 'GhoshCNN'
+BATCH_SIZE = 64
 
 FULL_SIZE_1 = 500
 FULL_SIZE_2 = 100
@@ -51,7 +53,7 @@ class FEGhoshCNN(FEExpresser):
         self.session.run(self.ops)
 
         #If the model has already been trained, load it again
-        if os.path.isfile(paths.get_saved_model_path(MODEL_NAME)):
+        if False and os.path.isfile(paths.get_saved_model_path(MODEL_NAME)):
             logging.info("Found saved model, restoring variables....")
             self.saver.restore(self.session, paths.get_saved_model_path(MODEL_NAME))
             self.isTrained = True
@@ -59,18 +61,34 @@ class FEGhoshCNN(FEExpresser):
     def train(self, save=True):
         logging.info("Beginning training session for MultiLabelCNN")
 
-        items = self.repo.get_training_batch(BATCH_SIZE)
+        images, labels = self.repo.get_training_batch(BATCH_SIZE)
         i = 0
 
         #Do training
+        correct_prediction = tf.equal(self.output, self.y_)
+        accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+        tf.scalar_summary('accuracy', accuracy)
             
-        while len(items) > 0:
+        while len(images) > 0:
+
+            if i % 100 == 0:
+                train_accuracy = accuracy.eval(feed_dict={self.x: images,
+                         self.y_: labels,
+                         self.keep_prob: 1.0})
+
+                logging.info("Accuracy at %d: %g" % (i, train_accuracy))
+
              #Do training
             feed_dict = {self.x: images,
                          self.y_: labels,
                          self.keep_prob: 0.5}
             self.session.run(self.trainer,
                              feed_dict=feed_dict)
+
+            images, labels = self.repo.get_training_batch(BATCH_SIZE)
+
+            i += 1
+
 
         if save:
             self.saver.save(self.session, paths.get_saved_model_path(MODEL_NAME))
@@ -101,8 +119,8 @@ class FEGhoshCNN(FEExpresser):
         max_pool_1 = max_pool_2x2(drop_1, name='pool_1')
 
         #Second "mega" layer 
-        conv_W_2 = weight_variable([KERNEL_SIZE, KERNEL_SIZE, 1, 10], name='conv_W_2')
-        conv_b_2 = bias_variable([70], name="conv_b_2")
+        conv_W_2 = weight_variable([KERNEL_SIZE, KERNEL_SIZE, 70, 10], name='conv_W_2')
+        conv_b_2 = bias_variable([10], name="conv_b_2")
         conv_2 = conv2d(max_pool_1, conv_W_2, 'conv_layer_2')
         relu_2 = tf.nn.relu(conv_2 + conv_b_2, 'relu_2')
         drop_2 = tf.nn.dropout(relu_2, self.keep_prob, name='drop_2')
@@ -110,22 +128,22 @@ class FEGhoshCNN(FEExpresser):
 
         #Fully connected layers
         
-        flattened = tf.reshape(max_pool_2, [-1], name='layer3_pool')
+        flattened = tf.reshape(max_pool_2, [-1, 24*24*10], name='layer3_pool')
 
         #1st fully connected
-        flat_W_1 = weight_variable(shape=[FULL_SIZE_1, size(flattened)], name='flat_W_1')
+        flat_W_1 = weight_variable(shape=[24*24*10, FULL_SIZE_1], name='flat_W_1')
         flat_b_1 = bias_variable(shape=[FULL_SIZE_1], name='flat_b_1')
-        flat_1 = tf.nn.relu(tf.matmul(flat_W_1, flattened) + flat_b_1, name='flat_1')
+        flat_1 = tf.nn.relu(tf.matmul(flattened, flat_W_1) + flat_b_1, name='flat_1')
 
         #2nd
-        flat_W_2 = weight_variable(shape=[FULL_SIZE_2, FULL_SIZE_1], name='flat_W_2')
+        flat_W_2 = weight_variable(shape=[FULL_SIZE_1, FULL_SIZE_2], name='flat_W_2')
         flat_b_2 = bias_variable(shape=[FULL_SIZE_2], name='flat_b_2')
-        flat_2 = tf.nn.relu(tf.matmul(flat_W_2, flat_1) + flat_b_2, name='flat_2')
+        flat_2 = tf.nn.relu(tf.matmul(flat_1, flat_W_2) + flat_b_2, name='flat_2')
 
         #3rd
-        flat_W_3 = weight_variable(shape=[FULL_SIZE_3, FULL_SIZE_2], name='flat_W_3')
+        flat_W_3 = weight_variable(shape=[FULL_SIZE_2, FULL_SIZE_3], name='flat_W_3')
         flat_b_3 = bias_variable(shape=[FULL_SIZE_3], name='flat_b_3')
-        flat_3 = tf.nn.relu(tf.matmul(flat_W_3, flat_2) + flat_b_3, name='flat_3')
+        flat_3 = tf.nn.relu(tf.matmul(flat_2, flat_W_3) + flat_b_3, name='flat_3')
 
         cost = self._multilabel_error(self.y_, flat_3)
 
@@ -138,8 +156,8 @@ class FEGhoshCNN(FEExpresser):
         return train_step, flat_3, init_ops
 
     def _multilabel_error(self, label, output):
-        p_hat = tf.exp(output) / tf.sum(tf.exp(output))
-        return -tf.reduce_mean(tf.sum(label * tf.log(p_hat)))
+        p_hat = tf.exp(output) / tf.reduce_sum(tf.exp(output))
+        return -tf.reduce_mean(tf.reduce_sum(label * tf.log(p_hat)))
 
 
     def get_image_size(self):

@@ -15,6 +15,7 @@ TRAINING_DIR = 'training'
 TESTING_DIR = 'testing'
 VALIDATION_DIR = 'validation'
 SHUFFLE = True
+EPOCHS=500
 
 
 class DIFSARepository(FACRepository):
@@ -48,11 +49,11 @@ class DIFSARepository(FACRepository):
         reader = tf.TFRecordReader()
         _, serialized_examples = reader.read_up_to(self.training_queue, batch_size)
 
-        features = []
+        images = []
         labels = []
 
         for i in range(batch_size):
-            features = tf.parse_single_example(serialized_example, features={
+            features = tf.parse_single_example(serialized_examples[i], features={
                 'label': tf.FixedLenFeature([1, 12], tf.int64),
                 'image': tf.FixedLenFeature([], tf.string)
             })
@@ -62,10 +63,10 @@ class DIFSARepository(FACRepository):
             image = tf.cast(image, tf.float32) * (1. / 255) - 0.5
             label = features['label']
 
-            features.append(image)
+            images.append(image)
             labels.append(label)
 
-        return features, labels
+        return images, labels
 
 
     def get_training_batch(self, batch_size=None):
@@ -77,7 +78,15 @@ class DIFSARepository(FACRepository):
         if batch_size is None:
             batch_size = self.batch_size
 
-        return self._read_and_decode(self.training_queue, batch_size)
+        images, labels = self._read_and_decode(self.training_queue, batch_size)
+
+        with tf.Session() as sess:
+            images = sess.run(images)
+            labels = sess.run(labels)
+
+        _convert_to_one_hot(labels)
+
+        return images, labels
 
     def get_validation_data(self):
         """List of validation data
@@ -94,6 +103,13 @@ class DIFSARepository(FACRepository):
         """
 
         return self._read_and_decode(self.testing_queue, self.testing_size)
+
+
+def _convert_to_one_hot(labels):
+    for label in labels:
+        for j, item in enumerate(label):
+            if item > 0:
+                label[j] = 1
 
 
 def main():

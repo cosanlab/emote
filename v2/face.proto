@@ -1,0 +1,7 @@
+package emote_data;
+
+message Face {
+    optional string id = 1;
+    required bytes image = 2;
+    repeated int64 facs = 3;
+}

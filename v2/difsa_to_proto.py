@@ -7,7 +7,7 @@ import tensorflow as tf
 import numpy as np
 from PIL import Image
 import cv2
-import emote_data
+import face_pb2 
 
 
 FAC_DATA = 'fac_data'
@@ -60,11 +60,13 @@ def write_records(root_dir, dest_dir):
                 location = TESTING_DIR
 
             #Write to tfrecord
-            record_path = os.path.join(dest_dir, location, filename + '.tfrecord')
+            dataId = filename.split('.')[0]
+            record_path = os.path.join(dest_dir, location, dataId)
             print("Writing %s" % record_path)
-            faceBuffer = emote_data.Face()
-            faceBuffer.facs = labels[i]
+            faceBuffer = face_pb2.Face()
+            faceBuffer.facs.extend(labels[i])
             faceBuffer.image = image.tostring()
+            faceBuffer.id = dataId
             fp = open(record_path, 'wb')
             fp.write(faceBuffer.SerializeToString())
             fp.close()

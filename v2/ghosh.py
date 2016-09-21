@@ -1,4 +1,5 @@
 #! /usr/bin/python
+import sys
 
 from keras.optimizers import Adam
 from keras.models import Sequential
@@ -7,19 +8,26 @@ from keras.layers.core import Dropout, Flatten
 from keras.layers.pooling import MaxPooling2D
 from keras import backend as K
 
-IMAGE_SIZE = 32
+import numpy as np
+
+
+TESTING_DIR = sys.argv[1]
+IMAGE_SIZE = 96
 
 DROPOUT = 0.5
+THRESHOLD = 
 KERNEL_SIZE=5
 LEARNING_RATE=0.01
 WEIGHT_STD = 0.3
+
+BATCH_SIZE = 30
 EPOCHS = 500
 
 FULL_SIZE_1 = 500
 FULL_SIZE_2 = 100
 FULL_SIZE_3 = 12
 
-REDUCED_IMAGE_SIZE = 3 *IMAGE_SIZE / 4.0
+REDUCED_IMAGE_SIZE = 3 * IMAGE_SIZE / 4.0
 
 def multilabel_error(label, output):
     p_hat = K.exp(output) / K.sum(K.exp(output))
@@ -41,16 +49,29 @@ model = Sequential([
     Dense(FULL_SIZE_1, input_dim=REDUCED_IMAGE_SIZE),
     Activation('relu'),
     Dense(FULL_SIZE_2, input_dim=FULL_SIZE_1),
-    Activation('hard_sigmoid'),
+    Activation('relu'),
+    Dense(FULL_SIZE_3, input_dim=FULL_SIZE_2)
 ])
 
 optimizer = Adam(lr=LEARNING_RATE)
 
 model.compile(optimizer, multilabel_error, metrics=['accuracy'])
 
-from keras.datasets import cifar100
+training_repo = difsa_repo(TESTING_DIR)
+losses = []
 
-(X_train, y_train), (X_test, y_test) = cifar100.load_data(label_mode='fine')
+while test_repo.get_epoch() < EPOCHS:
+    images, facs = test_repo.get_data(BATCH_SIZE)
+    images = np.asarray(images)
+    facs = np.asarray(facs)
 
-model.fit(X_train, y_train)
-model.evaluate(X_test, y_test)
+    loss = model.train_on_batch(images, facs)
+    losses.append(loss)
+
+plt.plot(losses)
+plt.xlabel('Epochs')
+plt.ylabel('Loss')
+plt.grid(True)
+plt.savefig("ghosh.png")
+
+

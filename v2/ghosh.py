@@ -9,8 +9,8 @@ from keras.layers.core import Dropout, Flatten
 from keras.layers.pooling import MaxPooling2D
 from keras.layers.advanced_activations import LeakyReLU
 from keras import backend as K
-
 import numpy as np
+from matplotlib import pyplot as plt
 
 from difsa import difsa_repo
 
@@ -31,14 +31,17 @@ FULL_SIZE_3 = 12
 
 REDUCED_IMAGE_SIZE = IMAGE_SIZE / 4.0
 
+EPSILON = 0.0001
+
 logging.basicConfig(filename='ghosh.log', level=logging.DEBUG)
 log = logging.getLogger(__name__)
 
 def multilabel_error(label, output):
     print("Label:  %s" % str(label))
     print("Output: %s" % str(output))
+
     p_hat = K.exp(output) / K.sum(K.exp(output))
-    return -K.mean(K.sum(label * K.log(p_hat)))
+    return - K.mean(K.sum(label * K.log(p_hat)))
 
 def make_plot(data, x_label, file):
     plt.plot(data)
@@ -49,22 +52,23 @@ def make_plot(data, x_label, file):
 
 model = Sequential([
     Convolution2D(70, KERNEL_SIZE, KERNEL_SIZE, border_mode='same', input_shape=(1, IMAGE_SIZE, IMAGE_SIZE)),
-    LeakyReLU(0.001),
+    LeakyReLU(Epochs),
     Dropout(DROPOUT),
     MaxPooling2D(pool_size=(2, 2), strides=None, border_mode='valid', dim_ordering='default'),
 
     Convolution2D(10, KERNEL_SIZE, KERNEL_SIZE, border_mode='same', input_shape=(70, KERNEL_SIZE, KERNEL_SIZE)),
-    LeakyReLU(0.001),
+    LeakyReLU(EPSILON),
     Dropout(DROPOUT),
     MaxPooling2D(pool_size=(2, 2), strides=None, border_mode='valid', dim_ordering='default'),
 
     Flatten(),
 
     Dense(FULL_SIZE_1, input_dim=REDUCED_IMAGE_SIZE),
-    LeakyReLU(0.001),
+    LeakyReLU(EPSILON),
     Dense(FULL_SIZE_2, input_dim=FULL_SIZE_1),
-    LeakyReLU(0.001),
-    Dense(FULL_SIZE_3, input_dim=FULL_SIZE_2)
+    LeakyReLU(EPSILON),
+    Dense(FULL_SIZE_3, input_dim=FULL_SIZE_2),
+    LeakyReLU(EPSILON)
 ])
 
 optimizer = Adam(lr=LEARNING_RATE)

@@ -27,8 +27,8 @@ class difsa_repo:
     def get_data(self, n):
         self.dataPresented += n
 
-        dataPaths = [self.queue.popleft() for i in range(n)]
-        self.queue.extend(dataPaths)
+        dataPaths = [self.queue.popLeft() for i in range(n)]
+        self.queue.append(dataPaths)
 
         images = []
         labels = []

@@ -1,5 +1,5 @@
 env/
-logs/*.log
+*.log
 saved_models/
 .idea/
 cv.*

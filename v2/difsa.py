@@ -1,6 +1,8 @@
 import os
 from random import shuffle
 from collections import deque
+from keras import backend as K
+import numpy as np
 
 import face_pb2
 
@@ -9,13 +11,13 @@ class difsa_repo:
     def __init__(self, directory_path):
         self.root_path = directory_path
         self.paths = os.listdir(self.root_path)
-        self.paths = shuffle(self.paths)
+        shuffle(self.paths)
         self.queue = deque(self.paths)
 
         self.numData = len(self.paths)
         self.dataPresented = 0
 
-    def load_from_filepath(path):
+    def load_from_filepath(self, path):
 
         with open(path, 'rb') as fp: 
             face = face_pb2.Face()
@@ -25,18 +27,42 @@ class difsa_repo:
     def get_data(self, n):
         self.dataPresented += n
 
-        dataPaths = [self.queue.popLeft() for i in range(n)]
-        self.queue.append(dataPaths)
-        data = [self.load_from_filepath(file) for file in dataPaths]
+        dataPaths = [self.queue.popleft() for i in range(n)]
+        self.queue.extend(dataPaths)
 
-        if (self.dataPresented - n % self.numData) + n > self.numData:
-            self.paths = shuffle(self.paths)
-            self.queue = deque(self.paths)
+        images = []
+        labels = []
 
-        return ([datum.image for datum in data], 
-                [datum.facs for datum in data])
+        for dataPath in dataPaths:
+            data = self.load_from_filepath(os.path.join(self.root_path, dataPath))
+
+            image = list(bytearray(data.image))
+            image_norm = [0] * len(image)
+            for val, pixel in enumerate(image):
+                image_norm[val] = pixel / 255.0
+
+            image = np.asarray(image_norm)
+
+            image = image.reshape((1, 96, 96))
+            images.append(image)
+            labels.append(np.asarray(_convert_to_one_hot(data.facs)))
+
+            self.dataPresented += 1
+            if self.dataPresented % self.numData == 0:
+                shuffle(self.paths)
+                self.queue = deque(self.paths)
+
+        return images, labels
 
     def get_epoch(self):
         return (self.dataPresented / self.numData) + 1
+
+def _convert_to_one_hot(label):
+    one_hot = [0] * len(label)
+    for j, item in enumerate(label):
+        if item >= 2:
+            one_hot[j] = 1
+
+    return one_hot
 
 

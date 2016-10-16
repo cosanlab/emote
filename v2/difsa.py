@@ -27,14 +27,15 @@ class difsa_repo:
     def get_data(self, n):
         self.dataPresented += n
 
-        dataPaths = [self.queue.popLeft() for i in range(n)]
-        self.queue.append(dataPaths)
+        dataPaths = [self.queue.popleft() for i in range(n)]
+        self.queue.extend(dataPaths)
 
         images = []
         labels = []
 
         for dataPath in dataPaths:
-            data = self.load_from_filepath(os.path.join(self.root_path, dataPath))
+            absDataPath = os.path.join(self.root_path, dataPath)
+            data = self.load_from_filepath(absDataPath)
 
             image = list(bytearray(data.image))
             image_norm = [0] * len(image)

@@ -24,6 +24,27 @@ class difsa_repo:
             face.ParseFromString(fp.read())
             return face
 
+    def get_dataset(self):
+        images = []
+        labels = []
+
+        for dataPath in self.paths:
+            absDataPath = os.path.join(self.root_path, dataPath)
+            data = self.load_from_filepath(absDataPath)
+
+            image = list(bytearray(data.image))
+            image_norm = [0] * len(image)
+            for val, pixel in enumerate(image):
+                image_norm[val] = pixel / 255.0
+
+            image = np.asarray(image_norm)
+
+            image = image.reshape((1, 96, 96))
+            images.append(image)
+            labels.append(np.asarray(_convert_to_one_hot(data.facs)))
+
+        return images, labels
+
     def get_data(self, n):
         self.dataPresented += n
 

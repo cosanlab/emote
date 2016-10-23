@@ -11,6 +11,10 @@ from keras.layers.advanced_activations import LeakyReLU
 from keras import backend as K
 import numpy as np
 
+from sklearn.multiclass import OneVsRestClassifier
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as qda
+from sklearn.metrics import f1_score
+
 
 import matplotlib
 matplotlib.use('Agg')   
@@ -19,6 +23,8 @@ from matplotlib import pyplot as plt
 from difsa import difsa_repo
 
 TRAINING_DIR = sys.argv[1]
+VALIDATION_DIR = sys.argv[2]
+
 IMAGE_SIZE = 96
 
 DROPOUT = 0.5
@@ -65,6 +71,13 @@ class MetricAccumulator:
         self.count = 0
         self.total = 0
 
+def getModelParams():
+    return '---PARAMETERS---\n' + \
+           'Learning rate: ' + LEARNING_RATE + '\n' + \
+           '      Dropout: ' + DROPOUT + '\n' + \
+           '   Batch size: ' + BATCH_SIZE + '\n' + \
+           '       Epochs: ' + EPOCHS + '\n' + \
+           '  Kernel Size: ' + KERNEL_SIZE
 
 def multilabel_error(label, output):
     print("Label:  %s" % str(label))
@@ -72,31 +85,6 @@ def multilabel_error(label, output):
 
     p_hat = K.exp(output) / K.sum(K.exp(output))
     return - K.mean(K.sum(label * K.log(p_hat)))
-
-def fbeta_score(y_true, y_pred, beta=1):
-
-    if beta < 0:
-        raise ValueError('The lowest choosable beta is zero (only precision).')
-
-    # Count positive samples.
-    c1 = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
-    c2 = K.sum(K.round(K.clip(y_pred, 0, 1)))
-    c3 = K.sum(K.round(K.clip(y_true, 0, 1)))
-
-    # If there are no true samples, fix the F score at 0.
-    if c3 == 0:
-        return 0
-
-    # How many selected items are relevant?
-    precision = c1 / c2
-
-    # How many relevant items are selected?
-    recall = c1 / c3
-
-    # Weight precision and recall together as a single scalar.
-    beta2 = beta ** 2
-    f_score = (1 + beta2) * (precision * recall) / (beta2 * precision + recall)
-    return f_score
 
 def make_plot(data, x_label, file):
 
@@ -137,10 +125,13 @@ model = Sequential([
 ])
 
 optimizer = Adam(lr=LEARNING_RATE)
+model.compile(optimizer=optimizer, loss=multilabel_error, metrics=['accuracy'])
 
-model.compile(optimizer, multilabel_error, metrics=['accuracy', fbeta_score])
+classifier = OneVsRestClassifier(qda.QDA())
 
 training_repo = difsa_repo(TRAINING_DIR)
+validation_repo = difsa_repo(VALIDATION_DIR)
+
 losses = MetricAccumulator('Loss')
 accuracy = MetricAccumulator('Accuracy')
 f1 = MetricAccumulator('F1 Score')
@@ -148,7 +139,8 @@ f1 = MetricAccumulator('F1 Score')
 epoch = 1
 
 try:
-    while training_repo.get_epoch() < EPOCHS:
+    #Training loop
+    while training_repo.get_epoch() <= EPOCHS:
 
         if epoch != training_repo.get_epoch():
             epoch = training_repo.get_epoch()
@@ -157,15 +149,29 @@ try:
         images = np.asarray(images)
         facs = np.asarray(facs)
         loss = model.train_on_batch(np.asarray(images), np.asarray(facs))
-        log.info('Trainging info: loss = %s, epoch = %s' % (loss, epoch))
+        log.info('Training info: loss = %s, epoch = %s' % (loss, epoch))
 
         losses.add(loss[0], epoch)
         accuracy.add(loss[1], epoch)
-        f1.add(loss[2], epoch)
 
     losses.flush()
     accuracy.flush()
-    f1.flush()
+
+    #Train QDA
+    while training_repo.get_epoch() == epoch:
+        images, facs = training_repo.get_data(BATCH_SIZE)
+        predictions = model.predict(images, batch_size=BATCH_SIZE)
+        classifier.fit(predictions, facs)
+
+
+    #Cross-validation test
+    images, facs = validation_repo.get_dataset()
+
+    nn_predictions = model.predict(images, batch_size=BATCH_SIZE)
+    class_preds = classifier.predict(nn_predictions)
+    score = f1_score(facs, class_preds)
+    log.info(getModelParams())
+    log.info('F1 Score: %d' % score)
 
 except Exception as e:
     log.exception(e)
@@ -173,7 +179,6 @@ except Exception as e:
 try:
     make_plot(losses.data, losses.name, 'ghosh_loss.png')
     make_plot(accuracy.data, accuracy.name, 'ghosh_accuracy.png')
-    make_plot(f1.data, f1.name, 'ghosh_f1.png')
 except Exception as e:
     log.exception(e)
 

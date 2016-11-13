@@ -43,7 +43,7 @@ class difsa_repo:
             images.append(image)
             labels.append(np.asarray(_convert_to_one_hot(data.facs)))
 
-        return images, labels
+        return np.array(images), np.array(labels)
 
     def get_data(self, n):
         self.dataPresented += n
@@ -74,7 +74,7 @@ class difsa_repo:
                 shuffle(self.paths)
                 self.queue = deque(self.paths)
 
-        return images, labels
+        return np.asarray(images), np.asarray(labels)
 
     def get_epoch(self):
         return (self.dataPresented / self.numData) + 1

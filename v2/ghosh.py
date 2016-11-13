@@ -127,7 +127,7 @@ model = Sequential([
 optimizer = Adam(lr=LEARNING_RATE)
 model.compile(optimizer=optimizer, loss=multilabel_error, metrics=['accuracy'])
 
-classifier = OneVsRestClassifier(qda.QDA())
+classifier = OneVsRestClassifier(qda())
 
 training_repo = difsa_repo(TRAINING_DIR)
 validation_repo = difsa_repo(VALIDATION_DIR)
@@ -160,14 +160,14 @@ try:
     #Train QDA
     while training_repo.get_epoch() == epoch:
         images, facs = training_repo.get_data(BATCH_SIZE)
-        predictions = model.predict(images, batch_size=BATCH_SIZE)
+        predictions = model.predict_on_batch(images)
         classifier.fit(predictions, facs)
 
 
     #Cross-validation test
     images, facs = validation_repo.get_dataset()
 
-    nn_predictions = model.predict(images, batch_size=BATCH_SIZE)
+    nn_predictions = model.predict_on_batch(images)
     class_preds = classifier.predict(nn_predictions)
     score = f1_score(facs, class_preds)
     log.info(getModelParams())

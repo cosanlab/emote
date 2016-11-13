@@ -24,6 +24,7 @@ from difsa import difsa_repo
 
 TRAINING_DIR = sys.argv[1]
 VALIDATION_DIR = sys.argv[2]
+MODEL_PATH = sys.argv[3]
 
 IMAGE_SIZE = 96
 
@@ -71,6 +72,9 @@ class MetricAccumulator:
         self.count = 0
         self.total = 0
 
+    def average(self):
+        return sum(self.data) / float(len(self.data))
+
 def getModelParams():
     return '---PARAMETERS---\n' + \
            'Learning rate: ' + LEARNING_RATE + '\n' + \
@@ -103,78 +107,94 @@ def make_plot(data, x_label, file):
     plt.savefig(file)
     plt.close()
 
-model = Sequential([
-    Convolution2D(70, KERNEL_SIZE, KERNEL_SIZE, border_mode='same', input_shape=(1, IMAGE_SIZE, IMAGE_SIZE)),
-    LeakyReLU(EPSILON),
-    Dropout(DROPOUT),
-    MaxPooling2D(pool_size=(2, 2), strides=None, border_mode='valid', dim_ordering='default'),
+def train_model(training_repo):
+    model = Sequential([
+        Convolution2D(70, KERNEL_SIZE, KERNEL_SIZE, border_mode='same', input_shape=(1, IMAGE_SIZE, IMAGE_SIZE)),
+        LeakyReLU(EPSILON),
+        Dropout(DROPOUT),
+        MaxPooling2D(pool_size=(2, 2), strides=None, border_mode='valid', dim_ordering='default'),
 
-    Convolution2D(10, KERNEL_SIZE, KERNEL_SIZE, border_mode='same', input_shape=(70, KERNEL_SIZE, KERNEL_SIZE)),
-    LeakyReLU(EPSILON),
-    Dropout(DROPOUT),
-    MaxPooling2D(pool_size=(2, 2), strides=None, border_mode='valid', dim_ordering='default'),
+        Convolution2D(10, KERNEL_SIZE, KERNEL_SIZE, border_mode='same', input_shape=(70, KERNEL_SIZE, KERNEL_SIZE)),
+        LeakyReLU(EPSILON),
+        Dropout(DROPOUT),
+        MaxPooling2D(pool_size=(2, 2), strides=None, border_mode='valid', dim_ordering='default'),
 
-    Flatten(),
+        Flatten(),
 
-    Dense(FULL_SIZE_1, input_dim=REDUCED_IMAGE_SIZE),
-    LeakyReLU(EPSILON),
-    Dense(FULL_SIZE_2, input_dim=FULL_SIZE_1),
-    LeakyReLU(EPSILON),
-    Dense(FULL_SIZE_3, input_dim=FULL_SIZE_2),
-    LeakyReLU(EPSILON)
-])
+        Dense(FULL_SIZE_1, input_dim=REDUCED_IMAGE_SIZE),
+        LeakyReLU(EPSILON),
+        Dense(FULL_SIZE_2, input_dim=FULL_SIZE_1),
+        LeakyReLU(EPSILON),
+        Dense(FULL_SIZE_3, input_dim=FULL_SIZE_2),
+        LeakyReLU(EPSILON)
+    ])
 
-optimizer = Adam(lr=LEARNING_RATE)
-model.compile(optimizer=optimizer, loss=multilabel_error, metrics=['accuracy'])
+    optimizer = Adam(lr=LEARNING_RATE)
+    model.compile(optimizer=optimizer, loss=multilabel_error, metrics=['accuracy'])
 
-classifier = OneVsRestClassifier(qda.QDA())
+    classifier = OneVsRestClassifier(qda.QDA())
 
+    losses = MetricAccumulator('Loss')
+    accuracy = MetricAccumulator('Accuracy')
+
+    epoch = 1
+
+    try:
+        #Training loop
+        while training_repo.get_epoch() <= EPOCHS:
+
+            if epoch != training_repo.get_epoch():
+                epoch = training_repo.get_epoch()
+
+            images, facs = training_repo.get_data(BATCH_SIZE)
+            images = np.asarray(images)
+            facs = np.asarray(facs)
+            loss = model.train_on_batch(np.asarray(images), np.asarray(facs))
+            log.info('Training info: loss = %s, epoch = %s' % (loss, epoch))
+
+            losses.add(loss[0], epoch)
+            accuracy.add(loss[1], epoch)
+
+        losses.flush()
+        accuracy.flush()
+
+        return model
+
+    except Exception as e:
+    log.exception(e)
+
+model = None
 training_repo = difsa_repo(TRAINING_DIR)
 validation_repo = difsa_repo(VALIDATION_DIR)
 
-losses = MetricAccumulator('Loss')
-accuracy = MetricAccumulator('Accuracy')
-f1 = MetricAccumulator('F1 Score')
+if os.path.isfile(MODEL_PATH):
+    log.info("Loading model from file %s" % MODEL_PATH)
+    model = keras.models.load_model(MODEL_PATH)
+else:
+    model = train_model()
+    model.save(MODEL_PATH)
+    log.info("Saving model to %s" % MODEL_PATH)
 
-epoch = 1
-
-try:
-    #Training loop
-    while training_repo.get_epoch() <= EPOCHS:
-
-        if epoch != training_repo.get_epoch():
-            epoch = training_repo.get_epoch()
-
-        images, facs = training_repo.get_data(BATCH_SIZE)
-        images = np.asarray(images)
-        facs = np.asarray(facs)
-        loss = model.train_on_batch(np.asarray(images), np.asarray(facs))
-        log.info('Training info: loss = %s, epoch = %s' % (loss, epoch))
-
-        losses.add(loss[0], epoch)
-        accuracy.add(loss[1], epoch)
-
-    losses.flush()
-    accuracy.flush()
-
-    #Train QDA
-    while training_repo.get_epoch() == epoch:
-        images, facs = training_repo.get_data(BATCH_SIZE)
-        predictions = model.predict(images, batch_size=BATCH_SIZE)
-        classifier.fit(predictions, facs)
+#Train QDA
+while training_repo.get_epoch() == epoch:
+    images, facs = training_repo.get_data(BATCH_SIZE)
+    predictions = model.predict(images, batch_size=BATCH_SIZE)
+    classifier.fit(predictions, facs)
 
 
-    #Cross-validation test
-    images, facs = validation_repo.get_dataset()
+#Cross-validation test
+f1_score_acc = MetricAccumulator('F1 Score')
 
+while validation_repo.get_epoch() == 1:
+    images, facs = validation_repo.get_data(BATCH_SIZE)
     nn_predictions = model.predict(images, batch_size=BATCH_SIZE)
     class_preds = classifier.predict(nn_predictions)
-    score = f1_score(facs, class_preds)
-    log.info(getModelParams())
-    log.info('F1 Score: %d' % score)
+    f1_score_acc.add(f1_score(facs, class_preds), 1)
 
-except Exception as e:
-    log.exception(e)
+f1_score_acc.flush()
+log.info(getModelParams())
+log.info('F1 Score Average: %d' % f1_score_acc.average())
+
 
 try:
     make_plot(losses.data, losses.name, 'ghosh_loss.png')

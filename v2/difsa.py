@@ -15,41 +15,71 @@ class difsa_repo:
         self.queue = deque(self.paths)
 
         self.numData = len(self.paths)
-        self.dataPresented = 0
+        self.epoch = 1
 
     def load_from_filepath(self, path):
 
-        with open(path, 'rb') as fp: 
+        with open(path, 'rb') as fp:
             face = face_pb2.Face()
             face.ParseFromString(fp.read())
             return face
 
+    def reset(self):
+        shuffle(self.paths)
+        self.queue = deque(self.paths)
+
+    def reset_epoch(self):
+        self.epoch = 1
+
     def get_dataset(self):
-        images = []
-        labels = []
+        images = None
+        labels = None
+        self.reset()
+        self.reset_epoch()
+        epoch = self.epoch
+        batch_size = 1000
 
-        for dataPath in self.paths:
-            absDataPath = os.path.join(self.root_path, dataPath)
-            data = self.load_from_filepath(absDataPath)
+        while True:
+            new_images, new_labels = self.get_data(batch_size)
 
-            image = list(bytearray(data.image))
-            image_norm = [0] * len(image)
-            for val, pixel in enumerate(image):
-                image_norm[val] = pixel / 255.0
+            if images is None:
+                images = new_images
+                labels = new_labels
+            else:
+                images = np.concatenate((images, new_images))
+                labels = np.concatenate((labels, new_labels))
 
-            image = np.asarray(image_norm)
+            if epoch != self.epoch:
+                break
 
-            image = image.reshape((1, 96, 96))
-            images.append(image)
-            labels.append(np.asarray(_convert_to_one_hot(data.facs)))
+        return images, labels
 
-        return np.array(images), np.array(labels)
+    def get_dataset_priors(self):
+        totals = [0] * 12
+        batch_size = 1000
+        self.reset()
+        self.reset_epoch()
+
+        while self.get_epoch() == 1:
+            images, facs = self.get_data(batch_size)
+
+            for i in range(len(facs[0])):
+                totals[i] += sum([fac[i] for fac in facs])
+
+        return [total / float(self.numData) for total in totals]
+
 
     def get_data(self, n):
-        self.dataPresented += n
 
-        dataPaths = [self.queue.popleft() for i in range(n)]
-        self.queue.extend(dataPaths)
+        dataPaths = []
+        try:
+            #Pop n items or until failure
+            for i in range(n):
+                dataPaths.append(self.queue.popleft())
+        except IndexError, e:
+            print("unable to pop")
+            self.epoch += 1
+            self.reset()
 
         images = []
         labels = []
@@ -69,15 +99,10 @@ class difsa_repo:
             images.append(image)
             labels.append(np.asarray(_convert_to_one_hot(data.facs)))
 
-            self.dataPresented += 1
-            if self.dataPresented % self.numData == 0:
-                shuffle(self.paths)
-                self.queue = deque(self.paths)
-
         return np.asarray(images), np.asarray(labels)
 
     def get_epoch(self):
-        return (self.dataPresented / self.numData) + 1
+        return self.epoch
 
 def _convert_to_one_hot(label):
     one_hot = [0] * len(label)
@@ -86,5 +111,3 @@ def _convert_to_one_hot(label):
             one_hot[j] = 1
 
     return one_hot
-
-

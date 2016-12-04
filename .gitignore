@@ -12,4 +12,4 @@ data/DIFSA
 data/test_data/video_processed/
 config.json
 docs/build
-
+*.model

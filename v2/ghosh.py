@@ -1,9 +1,11 @@
 #! /usr/bin/python
 import sys
+import os
 import logging
+import traceback
 
 from keras.optimizers import Adam
-from keras.models import Sequential
+from keras.models import Sequential, load_model
 from keras.layers import Dense, Activation, Convolution2D
 from keras.layers.core import Dropout, Flatten
 from keras.layers.pooling import MaxPooling2D
@@ -13,11 +15,12 @@ import numpy as np
 
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as qda
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, accuracy_score
+from sklearn.preprocessing import MultiLabelBinarizer
 
 
 import matplotlib
-matplotlib.use('Agg')   
+matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 
 from difsa import difsa_repo
@@ -35,7 +38,7 @@ WEIGHT_STD = 0.3
 
 BATCH_SIZE = 64
 EPOCHS = 500
-    
+
 FULL_SIZE_1 = 500
 FULL_SIZE_2 = 100
 FULL_SIZE_3 = 12
@@ -44,8 +47,11 @@ REDUCED_IMAGE_SIZE = IMAGE_SIZE / 4.0
 
 EPSILON = 0.0001
 
-logging.basicConfig(filename='ghosh.log', level=logging.DEBUG, filemode='w')
+format = "%(levelname) -10s %(asctime)s %(module)s:%(lineno)s %(funcName)s %(message)s"
+
+logging.basicConfig(filename='ghosh.log', level=logging.DEBUG, filemode='w', format=format)
 log = logging.getLogger('GHOSH')
+
 
 class MetricAccumulator:
 
@@ -75,13 +81,15 @@ class MetricAccumulator:
     def average(self):
         return sum(self.data) / float(len(self.data))
 
+
 def getModelParams():
     return '---PARAMETERS---\n' + \
-           'Learning rate: ' + LEARNING_RATE + '\n' + \
-           '      Dropout: ' + DROPOUT + '\n' + \
-           '   Batch size: ' + BATCH_SIZE + '\n' + \
-           '       Epochs: ' + EPOCHS + '\n' + \
-           '  Kernel Size: ' + KERNEL_SIZE
+           'Learning rate: ' + str(LEARNING_RATE) + '\n' + \
+           '      Dropout: ' + str(DROPOUT) + '\n' + \
+           '   Batch size: ' + str(BATCH_SIZE) + '\n' + \
+           '       Epochs: ' + str(EPOCHS) + '\n' + \
+           '  Kernel Size: ' + str(KERNEL_SIZE)
+
 
 def multilabel_error(label, output):
     print("Label:  %s" % str(label))
@@ -90,9 +98,10 @@ def multilabel_error(label, output):
     p_hat = K.exp(output) / K.sum(K.exp(output))
     return - K.mean(K.sum(label * K.log(p_hat)))
 
+
 def make_plot(data, x_label, file):
 
-    xs = range(1,len(data)+1)
+    xs = range(1, len(data)+1)
     ys = data
 
     fit = np.polyfit(xs, ys, deg=1)
@@ -106,6 +115,17 @@ def make_plot(data, x_label, file):
     plt.grid(True)
     plt.savefig(file)
     plt.close()
+
+
+def ndarray_of_lists(ndarray2d):
+    length = len(ndarray2d)
+    new_array = np.empty((length,))
+
+    for i, array in enumerate(ndarray2d):
+        new_array[i] = array.tolist()
+
+    return new_array
+
 
 def train_model(training_repo):
     model = Sequential([
@@ -132,73 +152,92 @@ def train_model(training_repo):
     optimizer = Adam(lr=LEARNING_RATE)
     model.compile(optimizer=optimizer, loss=multilabel_error, metrics=['accuracy'])
 
-    classifier = OneVsRestClassifier(qda.QDA())
-
     losses = MetricAccumulator('Loss')
     accuracy = MetricAccumulator('Accuracy')
 
-    epoch = 1
+    training_repo.reset()
+    training_repo.reset_epoch()
 
     try:
         #Training loop
         while training_repo.get_epoch() <= EPOCHS:
 
-            if epoch != training_repo.get_epoch():
-                epoch = training_repo.get_epoch()
-
             images, facs = training_repo.get_data(BATCH_SIZE)
             images = np.asarray(images)
             facs = np.asarray(facs)
             loss = model.train_on_batch(np.asarray(images), np.asarray(facs))
-            log.info('Training info: loss = %s, epoch = %s' % (loss, epoch))
+            log.info('Training info: loss = %s, epoch = %s' % (loss, training_repo.get_epoch()))
 
-            losses.add(loss[0], epoch)
-            accuracy.add(loss[1], epoch)
+            losses.add(loss[0], training_repo.get_epoch())
+            accuracy.add(loss[1], training_repo.get_epoch())
 
         losses.flush()
         accuracy.flush()
 
+        try:
+            make_plot(losses.data, losses.name, 'ghosh_loss.png')
+            make_plot(accuracy.data, accuracy.name, 'ghosh_accuracy.png')
+        except Exception as e:
+            log.exception(e)
+
         return model
 
     except Exception as e:
-    log.exception(e)
+        log.exception(e)
 
 model = None
 training_repo = difsa_repo(TRAINING_DIR)
 validation_repo = difsa_repo(VALIDATION_DIR)
 
-if os.path.isfile(MODEL_PATH):
-    log.info("Loading model from file %s" % MODEL_PATH)
-    model = keras.models.load_model(MODEL_PATH)
-else:
-    model = train_model()
-    model.save(MODEL_PATH)
-    log.info("Saving model to %s" % MODEL_PATH)
+try:
+    if os.path.isfile(MODEL_PATH):
+        log.info("Loading model from file %s" % MODEL_PATH)
+        model = load_model(MODEL_PATH, custom_objects={'multilabel_error': multilabel_error})
+    else:
+        model = train_model(training_repo)
+        model.save(MODEL_PATH)
+        log.info("Saving model to %s" % MODEL_PATH)
+except Exception as e:
+    log.error(e)
 
-#Train QDA
-while training_repo.get_epoch() == epoch:
-    images, facs = training_repo.get_data(BATCH_SIZE)
+priors = training_repo.get_dataset_priors()
+print(priors)
+classifier = OneVsRestClassifier(qda(store_covariances=True))
+
+training_repo.reset()
+training_repo.reset_epoch()
+
+try:
+    images, facs = training_repo.get_dataset()
+    print(images.shape)
+    print(facs.shape)
     predictions = model.predict(images, batch_size=BATCH_SIZE)
     classifier.fit(predictions, facs)
+except Exception as e:
+    print("ERROR: " + str(e))
+    log.error(e)
+    exit()
 
 
 #Cross-validation test
 f1_score_acc = MetricAccumulator('F1 Score')
-
-while validation_repo.get_epoch() == 1:
-    images, facs = validation_repo.get_data(BATCH_SIZE)
-    nn_predictions = model.predict(images, batch_size=BATCH_SIZE)
-    class_preds = classifier.predict(nn_predictions)
-    f1_score_acc.add(f1_score(facs, class_preds), 1)
-
-f1_score_acc.flush()
-log.info(getModelParams())
-log.info('F1 Score Average: %d' % f1_score_acc.average())
-
+accuracy_acc = MetricAccumulator('Accuracy')
 
 try:
-    make_plot(losses.data, losses.name, 'ghosh_loss.png')
-    make_plot(accuracy.data, accuracy.name, 'ghosh_accuracy.png')
-except Exception as e:
-    log.exception(e)
+    while validation_repo.get_epoch() == 1:
+        images, facs = validation_repo.get_data(BATCH_SIZE*5)
+        nn_predictions = model.predict(images, batch_size=BATCH_SIZE)
+        class_preds = classifier.predict(nn_predictions)
+        print(class_preds)
+        f1_score_acc.add(f1_score(facs, class_preds, average=None), 1)
+        accuracy_acc.add(accuracy_score(facs, class_preds, normalize=True), 1)
 
+    f1_score_acc.flush()
+    accuracy_acc.flush()
+    log.info(getModelParams())
+    log.info('F1 Score Average: ' + str(f1_score_acc.average()))
+    log.info('Accuracy: ' + str(accuracy_acc.average()))
+except Exception as e:
+    traceback.print_exc()
+    print(e)
+    log.error(e)

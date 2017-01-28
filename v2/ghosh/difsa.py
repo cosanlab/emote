@@ -77,7 +77,6 @@ class difsa_repo:
             for i in range(n):
                 dataPaths.append(self.queue.popleft())
         except IndexError, e:
-            print("unable to pop")
             self.epoch += 1
             self.reset()
 
@@ -96,6 +95,11 @@ class difsa_repo:
             image = np.asarray(image_norm)
 
             image = image.reshape((1, 96, 96))
+
+            if np.count_nonzero(image.flatten()) == 0:
+                print('Found empty image: %s' % dataPath)
+                continue
+
             images.append(image)
             labels.append(np.asarray(_convert_to_one_hot(data.facs)))
 

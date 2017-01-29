@@ -61,7 +61,7 @@ class Optimizer:
                 'accuracy': accuracy
             }
         }
-        
+
         log.info(result)
         return result
 
@@ -86,7 +86,7 @@ def main():
     space = {
         LEARN: hp.uniform(LEARN, 0.0000001, 0.0001),
         KERNEL: hp.quniform(KERNEL, 8, 3, 1),
-        BATCH: hp.quniform(BATCH, 32, 4, 1)
+        BATCH: hp.quniform(BATCH, 128, 4, 1)
     }
     log.info("Space:")
     log.info(space)
@@ -94,7 +94,7 @@ def main():
     best = fmin(optimizer.objective,
          space=space,
          algo=tpe.suggest,
-         max_evals=10)
+         max_evals=100)
 
     print(best)
     log.info(str(best))

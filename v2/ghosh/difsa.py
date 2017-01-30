@@ -117,6 +117,13 @@ class difsa_repo:
     def get_epoch(self):
         return self.epoch
 
+    def get_size(self):
+        return len(self.paths)
+
+def difsa_generator(repo, batch_size):
+    while 1:
+        yield repo.get_data(batch_size)
+
 def _convert_to_one_hot(label):
     one_hot = [0] * len(label)
     for j, item in enumerate(label):

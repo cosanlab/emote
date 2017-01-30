@@ -25,7 +25,7 @@ import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 
-from difsa import difsa_repo
+from difsa import difsa_repo, difsa_generator
 
 MODEL_FILE = "ghosh_%s_%s_%s.model"
 CLASS_FILE = "ghosh_class_%s_%s_%s.pkl"
@@ -88,8 +88,8 @@ class GhoshModel:
 
     def run(self):
         log.info("Loading repositories")
-        training_repo = difsa_repo(self.train_dir, eager=ALL)
-        validation_repo = difsa_repo(self.validation_dir, eager=ALL)
+        training_repo = difsa_repo(self.train_dir)
+        validation_repo = difsa_repo(self.validation_dir)
 
         model = self.getModel(training_repo)
         classifier = self.getClassifier()
@@ -207,8 +207,8 @@ class GhoshModel:
         training_repo.reset_epoch()
 
         if ALL:
-            images, facs = training_repo.get_dataset()
-            history = model.fit(images, facs, nb_epoch=EPOCHS, verbose=2, callbacks=[LossHistory()])
+            generator = difsa_generator(training_repo, self.batch_size)
+            history = model.fit_generator(generator, samples_per_epoch=training_repo.get_size(), nb_epoch=EPOCHS, verbose=2, callbacks=[LossHistory()])
 
             return model
         try:

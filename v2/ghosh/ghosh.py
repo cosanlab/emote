@@ -12,6 +12,7 @@ from keras.layers.core import Dropout, Flatten
 from keras.layers.pooling import MaxPooling2D
 from keras.layers.advanced_activations import LeakyReLU
 from keras import backend as K
+from keras.callbacks import Callback
 import numpy as np
 
 from sklearn.multiclass import OneVsRestClassifier
@@ -51,6 +52,7 @@ REDUCED_IMAGE_SIZE = IMAGE_SIZE / 4.0
 EPSILON = 0.0001
 
 log = None
+ALL = True
 
 class GhoshModel:
 
@@ -86,8 +88,8 @@ class GhoshModel:
 
     def run(self):
         log.info("Loading repositories")
-        training_repo = difsa_repo(self.train_dir)
-        validation_repo = difsa_repo(self.validation_dir)
+        training_repo = difsa_repo(self.train_dir, eager=ALL)
+        validation_repo = difsa_repo(self.validation_dir, eager=ALL)
 
         model = self.getModel(training_repo)
         classifier = self.getClassifier()
@@ -204,6 +206,11 @@ class GhoshModel:
         training_repo.reset()
         training_repo.reset_epoch()
 
+        if ALL:
+            images, facs = training_repo.get_dataset()
+            history = model.fit(images, facs, nb_epoch=EPOCHS, verbose=2, callbacks=[LossHistory()])
+
+            return model
         try:
             #Training loop
             while training_repo.get_epoch() <= EPOCHS:
@@ -250,6 +257,13 @@ class GhoshModel:
                '       Epochs: ' + str(EPOCHS) + '\n' + \
                '  Kernel Size: ' + str(self.kernel_size)
 
+class LossHistory(Callback):
+    def on_train_begin(self, logs={}):
+        self.losses = []
+
+    def on_batch_end(self, batch, logs={}):
+        log.info(logs.get('loss'))
+        self.losses.append(logs.get('loss'))
 
 class MetricAccumulator:
 

@@ -8,11 +8,15 @@ import face_pb2
 
 class difsa_repo:
 
-    def __init__(self, directory_path):
+    def __init__(self, directory_path, eager=False):
         self.root_path = directory_path
         self.paths = os.listdir(self.root_path)
         shuffle(self.paths)
         self.queue = deque(self.paths)
+        self.data = []
+
+        if eager:
+            self.data = self.get_dataset()
 
         self.numData = len(self.paths)
         self.epoch = 1
@@ -32,27 +36,32 @@ class difsa_repo:
         self.epoch = 1
 
     def get_dataset(self):
-        images = None
-        labels = None
-        self.reset()
-        self.reset_epoch()
-        epoch = self.epoch
-        batch_size = 1000
+        if len(self.data) == 0:
+            images = None
+            labels = None
+            self.reset()
+            self.reset_epoch()
+            epoch = self.epoch
+            batch_size = 1000
 
-        while True:
-            new_images, new_labels = self.get_data(batch_size)
+            while True:
+                new_images, new_labels = self.get_data(batch_size)
 
-            if images is None:
-                images = new_images
-                labels = new_labels
-            else:
-                images = np.concatenate((images, new_images))
-                labels = np.concatenate((labels, new_labels))
+                if images is None:
+                    images = new_images
+                    labels = new_labels
+                else:
+                    images = np.concatenate((images, new_images))
+                    labels = np.concatenate((labels, new_labels))
 
-            if epoch != self.epoch:
-                break
+                if epoch != self.epoch:
+                    break
 
-        return images, labels
+            return images, labels
+
+        else:
+            self.epoch += 1
+            return self.data
 
     def get_dataset_priors(self):
         totals = [0] * 12

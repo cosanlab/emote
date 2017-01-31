@@ -37,25 +37,28 @@ class difsa_repo:
 
     def get_dataset(self):
         if len(self.data) == 0:
-            images = None
-            labels = None
+            paths = len(self.paths)
+            images = np.ndarray((paths, 1, 96, 96))
+            labels = np.ndarray((paths, 12))
             self.reset()
             self.reset_epoch()
             epoch = self.epoch
-            batch_size = 1000
+            batch_size = 100
+            total = 0
 
             while True:
                 new_images, new_labels = self.get_data(batch_size)
 
-                if images is None:
-                    images = new_images
-                    labels = new_labels
-                else:
-                    images = np.concatenate((images, new_images))
-                    labels = np.concatenate((labels, new_labels))
+                for i in range(len(new_images)):
+                    image_len = len(images)
+                    label_len = len(labels)
+                    images[total + i] = new_images[i]
+                    labels[total + i] = new_labels[i]
 
                 if epoch != self.epoch:
                     break
+
+                total += len(new_images)
 
             return images, labels
 

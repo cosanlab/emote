@@ -12,6 +12,7 @@ from keras.layers.core import Dropout, Flatten
 from keras.layers.pooling import MaxPooling2D
 from keras.layers.advanced_activations import LeakyReLU
 from keras import backend as K
+from keras.callbacks import Callback, EarlyStopping
 import numpy as np
 
 from sklearn.multiclass import OneVsRestClassifier
@@ -24,7 +25,7 @@ import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 
-from difsa import difsa_repo
+from difsa import difsa_repo, difsa_generator
 
 MODEL_FILE = "ghosh_%s_%s_%s.model"
 CLASS_FILE = "ghosh_class_%s_%s_%s.pkl"
@@ -50,9 +51,8 @@ REDUCED_IMAGE_SIZE = IMAGE_SIZE / 4.0
 
 EPSILON = 0.0001
 
-
-
-log = logging.getLogger(__name__)
+log = None
+ALL = True
 
 class GhoshModel:
 
@@ -72,18 +72,24 @@ class GhoshModel:
         self.output_dir = output_dir
 
         #Setup logging
-        fmt = "%(levelname) -10s %(asctime)s %(module)s:%(lineno)s %(funcName)s %(message)s"
-        if output_dir is not None:
-            filepath = os.path.join(output_dir, self.get_file_path(LOG_FILE))
-            logging.basicConfig(filename=filepath, level=logging.DEBUG, filemode='w', format=fmt)
-        else:
-            logging.basicConfig(filename='ghosh.log', level=logging.DEBUG, filemode='w', format=fmt)
+        if self.output_dir is not None:
+            log_file = self.get_file_path(LOG_FILE)
+            filepath = os.path.join(self.output_dir, self.get_file_path(LOG_FILE))
 
-        log = logging.getLogger('GHOSH')
+            log = logging.getLogger("ghosh_%s_%s_%s" % (self.learning_rate, self.kernel_size, self.batch_size))
+            log.info("Logging to %s" % filepath)
+
+            fmt = "%(levelname) -10s %(asctime)s %(module)s:%(lineno)s %(funcName)s %(message)s"
+            handler = logging.FileHandler(filepath, mode='w')
+            handler.setFormatter(logging.Formatter(fmt))
+            log.addHandler(handler)
+            log.setLevel(logging.DEBUG)
+
 
     def run(self):
-        training_repo = difsa_repo(self.train_dir)
-        validation_repo = difsa_repo(self.validation_dir)
+        log.info("Loading repositories")
+        training_repo = difsa_repo(self.train_dir, eager=ALL)
+        validation_repo = difsa_repo(self.validation_dir, eager=ALL)
 
         model = self.getModel(training_repo)
         classifier = self.getClassifier()
@@ -155,7 +161,7 @@ class GhoshModel:
 
     def getClassifier(self):
         classifier = None
-        class_path = os.path.join(self.ouput_dir, self.get_file_path(CLASS_FILE))
+        class_path = os.path.join(self.output_dir, self.get_file_path(CLASS_FILE))
 
         try:
             if os.path.isfile(class_path) and not self.retrain:
@@ -200,6 +206,11 @@ class GhoshModel:
         training_repo.reset()
         training_repo.reset_epoch()
 
+        if ALL:
+            generator = difsa_generator(training_repo, self.batch_size)
+            model.fit_generator(generator, training_repo.get_size(), EPOCHS, verbose=2, callbacks=[LossHistory()])
+
+            return model
         try:
             #Training loop
             while training_repo.get_epoch() <= EPOCHS:
@@ -207,6 +218,11 @@ class GhoshModel:
                 images, facs = training_repo.get_data(self.batch_size)
                 images = np.asarray(images)
                 facs = np.asarray(facs)
+
+                if images.size == 0 or facs.size == 0:
+                    log.info('Repo returned an empty array')
+                    continue
+
                 loss = model.train_on_batch(np.asarray(images), np.asarray(facs))
                 log.info('Training info: loss = %s, epoch = %s' % (loss, training_repo.get_epoch()))
 
@@ -241,6 +257,13 @@ class GhoshModel:
                '       Epochs: ' + str(EPOCHS) + '\n' + \
                '  Kernel Size: ' + str(self.kernel_size)
 
+class LossHistory(Callback):
+    def on_train_begin(self, logs={}):
+        self.losses = []
+
+    def on_epoch_end(self, batch, logs={}):
+        log.info(logs.get('loss'))
+        self.losses.append(logs.get('loss'))
 
 class MetricAccumulator:
 
@@ -272,11 +295,8 @@ class MetricAccumulator:
 
 
 def multilabel_error(label, output):
-    print("Label:  %s" % str(label))
-    print("Output: %s" % str(output))
-
     p_hat = K.exp(output) / K.sum(K.exp(output))
-    return - K.mean(K.sum(label * K.log(p_hat)))
+    return -K.mean(K.sum(label * K.log(p_hat)))
 
 
 def make_plot(data, x_label, file):
@@ -306,6 +326,9 @@ def ndarray_of_lists(ndarray2d):
     return new_array
 
 if __name__ == '__main__':
-    ghosh = GhoshModel(LEARNING_RATE, KERNEL_SIZE, BATCH_SIZE)
+    training = sys.argv[1]
+    validation = sys.argv[2]
+    log_dir = sys.argv[3]
+    ghosh = GhoshModel(training, validation, LEARNING_RATE, KERNEL_SIZE, BATCH_SIZE, log_dir)
     f1 = ghosh.run()
     print("Ghosh test model: F1_Score = %s" % str(f1))

@@ -8,11 +8,15 @@ import face_pb2
 
 class difsa_repo:
 
-    def __init__(self, directory_path):
+    def __init__(self, directory_path, eager=False):
         self.root_path = directory_path
         self.paths = os.listdir(self.root_path)
         shuffle(self.paths)
         self.queue = deque(self.paths)
+        self.data = []
+
+        if eager:
+            self.data = self.get_dataset()
 
         self.numData = len(self.paths)
         self.epoch = 1
@@ -32,27 +36,35 @@ class difsa_repo:
         self.epoch = 1
 
     def get_dataset(self):
-        images = None
-        labels = None
-        self.reset()
-        self.reset_epoch()
-        epoch = self.epoch
-        batch_size = 1000
+        if len(self.data) == 0:
+            paths = len(self.paths)
+            images = np.ndarray((paths, 1, 96, 96))
+            labels = np.ndarray((paths, 12))
+            self.reset()
+            self.reset_epoch()
+            epoch = self.epoch
+            batch_size = 100
+            total = 0
 
-        while True:
-            new_images, new_labels = self.get_data(batch_size)
+            while True:
+                new_images, new_labels = self.get_data(batch_size)
 
-            if images is None:
-                images = new_images
-                labels = new_labels
-            else:
-                images = np.concatenate((images, new_images))
-                labels = np.concatenate((labels, new_labels))
+                for i in range(len(new_images)):
+                    image_len = len(images)
+                    label_len = len(labels)
+                    images[total + i] = new_images[i]
+                    labels[total + i] = new_labels[i]
 
-            if epoch != self.epoch:
-                break
+                if epoch != self.epoch:
+                    break
 
-        return images, labels
+                total += len(new_images)
+
+            return images, labels
+
+        else:
+            self.epoch += 1
+            return self.data
 
     def get_dataset_priors(self):
         totals = [0] * 12
@@ -77,7 +89,6 @@ class difsa_repo:
             for i in range(n):
                 dataPaths.append(self.queue.popleft())
         except IndexError, e:
-            print("unable to pop")
             self.epoch += 1
             self.reset()
 
@@ -96,6 +107,11 @@ class difsa_repo:
             image = np.asarray(image_norm)
 
             image = image.reshape((1, 96, 96))
+
+            if np.count_nonzero(image.flatten()) == 0:
+                print('Found empty image: %s' % dataPath)
+                continue
+
             images.append(image)
             labels.append(np.asarray(_convert_to_one_hot(data.facs)))
 
@@ -103,6 +119,13 @@ class difsa_repo:
 
     def get_epoch(self):
         return self.epoch
+
+    def get_size(self):
+        return len(self.paths)
+
+def difsa_generator(repo, batch_size):
+    while 1:
+        yield repo.get_data(batch_size)
 
 def _convert_to_one_hot(label):
     one_hot = [0] * len(label)

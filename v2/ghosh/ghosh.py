@@ -12,7 +12,7 @@ from keras.layers.core import Dropout, Flatten
 from keras.layers.pooling import MaxPooling2D
 from keras.layers.advanced_activations import LeakyReLU
 from keras import backend as K
-from keras.callbacks import Callback, EarlyStopping
+from keras.callbacks import Callback
 import numpy as np
 
 from sklearn.multiclass import OneVsRestClassifier
@@ -207,8 +207,8 @@ class GhoshModel:
         training_repo.reset_epoch()
 
         if ALL:
-            generator = difsa_generator(training_repo, self.batch_size)
-            model.fit_generator(generator, training_repo.get_size(), EPOCHS, verbose=2, callbacks=[LossHistory()])
+            images, facs = training_repo.get_dataset()
+            history = model.fit(images, facs, nb_epoch=EPOCHS, verbose=2, callbacks=[LossHistory()])
 
             return model
         try:
@@ -261,7 +261,7 @@ class LossHistory(Callback):
     def on_train_begin(self, logs={}):
         self.losses = []
 
-    def on_epoch_end(self, batch, logs={}):
+    def on_batch_end(self, batch, logs={}):
         log.info(logs.get('loss'))
         self.losses.append(logs.get('loss'))
 
